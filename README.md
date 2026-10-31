@@ -160,6 +160,13 @@ Les pins d'entrée-sortie de l'Arduino Nano sont configurables dans le code EcoP
 La pin D9 est utilisé pour la sonde de température 1-Wire depuis la version 3.60.
 
 # Versions
+### **V 3.65** - 31/10/2026
+* Correction : après une coupure Wifi, MaxPV! ne se reconnectait plus au broker MQTT jusqu'à un redémarrage manuel.
+* Supervision des connexions : reconnexion MQTT immédiate au retour du Wifi, puis à intervalles croissants tant que le broker reste inaccessible.
+* Redémarrage automatique après 15 minutes continues sans Wifi.
+* Journal : événement de redémarrage avec sa cause, nouvelle cause de démarrage "absence prolongée du Wifi".
+* Les événements MQTT 'maxpv/event' sont publiés sans retain.
+* Versions : MaxPV! 3.65, site Web 3.65, EcoPV 3.60.
 ### **V 3.64** - 31/10/2026
 * Journal des événements : boosts avec origine et raison d'arrêt, changements de mode SSR, démarrages avec leur cause, pertes et reprises Wifi et MQTT. Page Journal, API JSON /api/events, publication MQTT sur 'maxpv/event' et capteur Home Assistant.
 * Site Web intégré au firmware : la mise à jour ne nécessite plus que le fichier firmware et conserve la configuration de MaxPV!.
