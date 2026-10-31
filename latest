@@ -2,5 +2,5 @@
   "ecopvver" : "3.60",
   "maxpvver" : "3.65",
   "webver" : "3.65",
-  "whatsnew" : "Nouveautés : Reconnexion automatique MQTT après une coupure Wifi, redémarrage après 15 minutes sans Wifi.<br>Voir les informations sur GitHub.<br>Rendez-vous à <a href=\"https://github.com/Jetblack31/MaxPV\" target=\"_blank\">https://github.com/Jetblack31/MaxPV</a><br>"
+  "whatsnew" : "Nouveautés : Reconnexion automatique MQTT après une coupure Wifi, redémarrage après 15 minutes sans Wifi.<br>Voir les informations sur GitHub.<br>Rendez-vous à <a href=\"https://github.com/checkrayns/MaxPV\" target=\"_blank\">https://github.com/checkrayns/MaxPV</a><br>"
 }
