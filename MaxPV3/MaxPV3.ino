@@ -104,6 +104,7 @@
 #define EVT_WIFI_WATCHDOG  8    // Redémarrage de la connexion par le watchdog Wifi
 #define EVT_MQTT_LOST      9    // Perte MQTT, detail = AsyncMqttClientDisconnectReason
 #define EVT_MQTT_OK        10   // Connexion MQTT, value = durée de coupure en secondes (-1 = première connexion)
+#define EVT_REBOOT         11   // Redémarrage décidé par MaxPV!, detail = cause (mêmes codes que EVT_BOOT)
 
 // Origines et raisons des événements boost et SSR
 #define EVT_SRC_WEB        1    // Interface web ou API HTTP
@@ -119,6 +120,7 @@
 #define EVT_BOOT_CONFIG    11   // Fichier de configuration incorrect
 #define EVT_BOOT_FS        12   // Erreur de filesystem
 #define EVT_BOOT_OTA       13   // Mise à jour du firmware
+#define EVT_BOOT_WIFI      14   // Absence de Wifi pendant WIFI_REBOOT_TIMEOUT
 
 
 // ***********************************************************************************
@@ -192,7 +194,6 @@ String ecoPVStatsAll;
 
 // Définition des tâches de Ticker
 TickerScheduler ts(2);
-Ticker mqttReconnectTimer;
 Ticker safeBoostOffTimer;
 
 // Compteur général à la seconde
@@ -263,6 +264,17 @@ bool wifiLinkUp = true;
 uint32_t wifiDownSince = 0;
 byte mqttLinkState = 0;         // 0 = jamais connecté, 1 = connecté, 2 = déconnecté
 uint32_t mqttDownSince = 0;
+
+// Supervision des connexions Wifi et MQTT (superviseConnections)
+bool wifiReturned = false;            // retour du Wifi signalé par onStationModeGotIP, traité par la supervision
+bool mqttStarted = false;             // client MQTT configuré par startMqtt()
+bool mqttAttemptPending = false;      // tentative de connexion MQTT lancée, sans réponse (callback) à ce jour
+bool mqttAttemptWifiUp = false;       // Wifi présent au lancement de la tentative en cours
+uint32_t mqttAttemptTime = 0;         // instant de lancement de la tentative en cours (uptime en secondes)
+uint32_t mqttNextAttempt = 0;         // instant de la prochaine tentative autorisée (uptime en secondes)
+byte mqttRetryIndex = 0;              // rang dans la table des délais MQTT_RETRY_DELAYS
+const uint16_t mqttRetryDelays[] = MQTT_RETRY_DELAYS;
+#define MQTT_RETRY_COUNT ( sizeof(mqttRetryDelays) / sizeof(mqttRetryDelays[0]) )
 
 // Variables pour la gestion du relais distant
 int relaisDistantPreviousState = OFF;
@@ -671,6 +683,10 @@ void loop()
 
   yield();
 
+  superviseConnections();
+
+  yield();
+
   publishPendingEvents();
 
   yield();
@@ -880,7 +896,10 @@ void saveConfigCallback(void)
 void rebootESP(void)
 {
   logMqtt (F("ESP"), F("!! Redémarrage !!"));
+  logEvent ( EVT_REBOOT, rebootCause, 0 );
   saveRebootCause(rebootCause);
+  // Publication des derniers événements avant le redémarrage, si MQTT est connecté
+  publishPendingEvents();
   delay (50);
   if (mqttClient.connected()) mqttClient.disconnect();
   delay(200);
@@ -1047,9 +1066,72 @@ void setWifiEventHandlers(void)
   {
     if (!wifiLinkUp) {
       wifiLinkUp = true;
+      wifiReturned = true;    // la reconnexion MQTT est relancée par superviseConnections()
       logEvent ( EVT_WIFI_OK, 0, long ( uptimeSeconds() - wifiDownSince ) );
     }
   });
+}
+
+///////////////////////////////////////////////////////////////////
+// Supervision des connexions Wifi et MQTT, appelée par loop()   //
+//                                                               //
+// AsyncMqttClient::connect() ne vérifie pas le retour de        //
+// AsyncClient::connect() : sans Wifi, la connexion TCP échoue   //
+// immédiatement, aucun callback n'est appelé et le client reste //
+// bloqué en état CONNECTING. connect() est alors sans effet.    //
+// La supervision :                                              //
+// - ne lance une tentative MQTT qu'en présence du Wifi,         //
+//   immédiatement au retour du Wifi puis avec un délai croissant//
+// - débloque une tentative restée sans réponse par              //
+//   disconnect(true) avant de relancer connect()                //
+// - redémarre MaxPV! après WIFI_REBOOT_TIMEOUT sans Wifi        //
+///////////////////////////////////////////////////////////////////
+
+void superviseConnections(void)
+{
+  uint32_t now = uptimeSeconds();
+
+  // Redémarrage après une absence prolongée du Wifi
+  if ( ( !wifiLinkUp ) && ( ( now - wifiDownSince ) >= WIFI_REBOOT_TIMEOUT ) && ( !shouldReboot ) ) {
+    rebootCause = EVT_BOOT_WIFI;
+    shouldReboot = true;
+    return;
+  }
+
+  if ( ( mqttActive != ON ) || ( !mqttStarted ) ) return;
+
+  if ( mqttClient.connected() ) {
+    mqttRetryIndex = 0;
+    return;
+  }
+
+  // Sans Wifi, aucune tentative : elle échouerait immédiatement et bloquerait le client
+  if ( !wifiLinkUp ) return;
+
+  // Retour du Wifi : tentative immédiate, les délais repartent du début
+  if ( wifiReturned ) {
+    wifiReturned = false;
+    mqttRetryIndex = 0;
+    mqttNextAttempt = now;
+  }
+
+  if ( now < mqttNextAttempt ) return;
+
+  if ( mqttAttemptPending ) {
+    // Une tentative lancée avec le Wifi peut être encore en cours : AsyncClient ne mémorise la connexion TCP
+    // qu'une fois établie, une remise à zéro créerait une seconde connexion. On attend sa réponse
+    // tant qu'elle n'a pas dépassé le délai d'abandon de lwIP
+    if ( ( mqttAttemptWifiUp ) && ( ( now - mqttAttemptTime ) < MQTT_ATTEMPT_TIMEOUT ) ) {
+      mqttNextAttempt = now + mqttRetryDelays[0];
+      return;
+    }
+    // Tentative bloquée (lancée sans Wifi, ou sans réponse) : remise à zéro de l'état du client
+    mqttClient.disconnect(true);
+  }
+
+  mqttConnect();
+  mqttNextAttempt = now + mqttRetryDelays[mqttRetryIndex];
+  if ( mqttRetryIndex < ( MQTT_RETRY_COUNT - 1 ) ) mqttRetryIndex++;
 }
 
 ///////////////////////////////////////////////////////////////////
@@ -1069,6 +1151,7 @@ const __FlashStringHelper* eventTypeKey(byte type)
     case EVT_WIFI_WATCHDOG: return F("wifi_watchdog");
     case EVT_MQTT_LOST:     return F("mqtt_lost");
     case EVT_MQTT_OK:       return F("mqtt_ok");
+    case EVT_REBOOT:        return F("reboot");
     default:                return F("unknown");
   }
 }
@@ -1115,6 +1198,7 @@ const __FlashStringHelper* bootCauseKey(byte cause)
     case EVT_BOOT_CONFIG:         return F("config_error");
     case EVT_BOOT_FS:             return F("filesystem_error");
     case EVT_BOOT_OTA:            return F("ota_update");
+    case EVT_BOOT_WIFI:           return F("wifi_timeout");
     default:                      return F("unknown");
   }
 }
@@ -1133,6 +1217,7 @@ const __FlashStringHelper* bootCauseText(byte cause)
     case EVT_BOOT_CONFIG:         return F("fichier de configuration incorrect");
     case EVT_BOOT_FS:             return F("erreur de filesystem");
     case EVT_BOOT_OTA:            return F("mise à jour du firmware");
+    case EVT_BOOT_WIFI:           return F("absence prolongée du Wifi");
     default:                      return F("inconnue");
   }
 }
@@ -1264,6 +1349,10 @@ String eventMessage(const eventRecord& e)
         msg += F(" s");
       }
       break;
+    case EVT_REBOOT:
+      msg = F("Redémarrage de MaxPV! : ");
+      msg += bootCauseText(e.detail);
+      break;
     default:
       msg = F("Evénement inconnu");
   }
@@ -1294,7 +1383,8 @@ String eventToJson(const eventRecord& e)
   json += eventTypeKey(e.type);
   json += F("\",\"detail\":\"");
   switch (e.type) {
-    case EVT_BOOT:          json += bootCauseKey(e.detail); break;
+    case EVT_BOOT:
+    case EVT_REBOOT:        json += bootCauseKey(e.detail); break;
     case EVT_BOOST_ON:
     case EVT_BOOST_OFF:
     case EVT_BOOST_REFUSED:
@@ -1917,19 +2007,25 @@ void startMqtt (void)
   }
   mqttClient.setServer(_ipmqtt, mqttPort);
   mqttClient.setWill(MQTT_STATE, 0, true, "disconnected");
+  mqttStarted = true;
   mqttConnect();
-  delay(3000);  
+  delay(3000);
 }
 
 
+// Lancement d'une tentative de connexion MQTT, suivie par superviseConnections()
 void mqttConnect (void)
-{ 
-  mqttClient.connect();  
+{
+  mqttAttemptPending = true;
+  mqttAttemptWifiUp  = WiFi.isConnected();
+  mqttAttemptTime    = uptimeSeconds();
+  mqttClient.connect();
 };
 
 
-void onMqttConnect(bool sessionPresent) 
+void onMqttConnect(bool sessionPresent)
 {
+  mqttAttemptPending = false;
   logMqtt ( F("[ESP]"), F("Service MQTT connecté") );
   logEvent ( EVT_MQTT_OK, 0, ( mqttLinkState == 2 ) ? long ( uptimeSeconds() - mqttDownSince ) : -1 );
   mqttLinkState = 1;
@@ -2268,6 +2364,7 @@ void onMqttConnect(bool sessionPresent)
 
 void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
 {
+  mqttAttemptPending = false;
   // Appelé à chaque échec de reconnexion : on ne journalise que le passage à l'état déconnecté
   if ( mqttLinkState != 2 ) {
     logEvent ( EVT_MQTT_LOST, byte (reason), 0 );
@@ -2275,7 +2372,7 @@ void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
     mqttDownSince = uptimeSeconds();
   }
   mqttClient.clearQueue();
-  mqttReconnectTimer.once(RECONNECT_TIME, mqttConnect);
+  // La reconnexion est relancée par superviseConnections(), uniquement en présence du Wifi
 }
 
 

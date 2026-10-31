@@ -56,8 +56,10 @@
 #define DEFAULT_DNS1        "192.168.1.1"
 #define DEFAULT_DNS2        "8.8.8.8"
 
-#define PING_WIFI_TIMEOUT    600000     // Délai en ms où on considère un problème de 
+#define PING_WIFI_TIMEOUT    600000     // Délai en ms où on considère un problème de
                                         // connexion wifi qui active le watchdog wifi
+
+#define WIFI_REBOOT_TIMEOUT  900        // Durée en secondes sans Wifi au-delà de laquelle MaxPV! redémarre
 
 // Login et password pour le service FTP si activé
 #define LOGIN_FTP           "maxpv"
@@ -72,7 +74,11 @@
 
 #define DEFAULT_MQTT_SERVER     "192.168.1.100" // Serveur MQTT par défaut
 #define DEFAULT_MQTT_PORT       1883            // Port serveur MQTT
-#define RECONNECT_TIME          5               // Délai de reconnexion en secondes suite à perte de connexion du serveur mqtt
+#define MQTT_RETRY_DELAYS       { 5, 15, 60, 180, 300 } // Délais successifs en secondes entre les tentatives de connexion MQTT
+                                                        // le dernier délai est répété
+#define MQTT_ATTEMPT_TIMEOUT    240             // Durée en secondes au-delà de laquelle une tentative de connexion MQTT
+                                                // restée sans réponse est considérée comme bloquée
+                                                // (supérieure à l'abandon d'une connexion TCP par lwIP, TCP_SYNMAXRTX)
 
 #define DEFAULT_REMOTE_RELAY_SERVER     "192.168.1.200"   // Serveur du relais distant
 #define DEFAULT_REMOTE_RELAY_PORT       80                // Port serveur relais distant
