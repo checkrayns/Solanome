@@ -40,8 +40,8 @@ if version == "":
     raise Exception(f"No version found in {SOURCECODE}")
 
 # Rename binary according to environnement/board
-env.Replace(ESP8266_FS_IMAGE_NAME=f"MaxPV{version}_filesystem")
-env.Replace(PROGNAME=f"MaxPV{version}_firmware")
+env.Replace(ESP8266_FS_IMAGE_NAME=f"Solanome{version}_filesystem")
+env.Replace(PROGNAME=f"Solanome{version}_firmware")
 
 
 # Génération de web_files.h : les fichiers du site Web sont intégrés au firmware,

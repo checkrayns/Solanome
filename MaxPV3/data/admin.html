@@ -290,7 +290,7 @@
 
     document.getElementById("factory").addEventListener("click", (e) => {
       if (!confirm("Effacer les configurations Wifi et Solanome ?\n\nSolanome redémarrera en point d'accès : " +
-                   "connectez-vous au réseau Wifi « MaxPV » puis à l'adresse 192.168.4.1.")) return;
+                   "connectez-vous au réseau Wifi « Solanome » puis à l'adresse 192.168.4.1.")) return;
       MaxPV.run(e.target, async () => {
         await MaxPV.action("eraseconfigesp");
         await MaxPV.action("rebootesp");

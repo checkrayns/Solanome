@@ -25,10 +25,10 @@
 
 // Version MaxPV!
 #define MAXPV_VERSION      "3.70"
-#define MAXPV_VERSION_FULL "MaxPV! 3.70"
+#define MAXPV_VERSION_FULL "Solanome 3.70"
 
 // SSID pour le Config Portal
-#define SSID_CP            "MaxPV"
+#define SSID_CP            "Solanome"
 
 // Communication série de débug pendant la phase initiale de démarrage
 #define SERIAL_LOG_BAUD   115200 // Vitesse de la liaison port série pour les logs de démarrage
@@ -43,14 +43,14 @@
 #define END_OF_TRANSMIT '#'    // Caractère de fin de transmission de l'Arduino
 
 // Communications TCP, ports 
-#define MAXPV_MDNS      "maxpv"         // mDNS pour accès local
+#define MAXPV_MDNS      "solanome"      // mDNS pour accès local : http://solanome.local
 #define HTTP_PORT       80              // Port serveur web MaxPV!
 
 // Accès protégé à l'interface Web : pages de configuration, mise à jour, actions et réglages
 // Authentification HTTP Digest, identifiant et mot de passe modifiables dans la page Administration
 #define DEFAULT_WEB_USER    "admin"
 #define DEFAULT_WEB_PASS    "maxpv"
-#define WEB_REALM           "MaxPV"
+#define WEB_REALM           "Solanome"
 #define DIGEST_NONCES       8           // Nombre de nonces Digest conservés (les plus anciens sont remplacés)
 #define DIGEST_NONCE_LIFE   300         // Durée de validité d'un nonce en secondes (au-delà : défi stale=true)
 
@@ -70,7 +70,7 @@
 #define LOGIN_FTP           "maxpv"
 #define PWD_FTP             "maxpv"
 
-#define WELCOME_MESSAGE     "MaxPV! par Bernard Legrand (2022)"
+#define WELCOME_MESSAGE     "Solanome, d'après MaxPV! de Bernard Legrand (2022)"
 
 // NTP
 #define TIME_ZONE              TZ_Europe_Paris

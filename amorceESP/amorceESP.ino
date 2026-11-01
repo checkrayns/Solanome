@@ -7,7 +7,7 @@
 #include <ESP8266WebServer.h>
 #include <ElegantOTA.h>
 
-const char* ssid = "MaxPV";
+const char* ssid = "Solanome";
 
 IPAddress local_IP ( 192, 168, 4, 1 );
 IPAddress gateway ( 192, 168, 4, 1 );

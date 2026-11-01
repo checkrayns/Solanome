@@ -142,7 +142,7 @@ const MaxPV = (() => {
   // Le mot de passe n'est jamais conservé : seule l'empreinte HA1 = MD5(identifiant:MaxPV:mot de passe)
   // est gardée le temps de l'onglet (sessionStorage).
 
-  const REALM = "MaxPV";
+  const REALM = "Solanome";
   const SESSION_KEY = "maxpv-admin";
   let session = loadSession();     // { user, ha1 }
   let challenge = null;            // défi Digest du serveur { realm, nonce, opaque }

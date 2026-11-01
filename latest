@@ -2,5 +2,5 @@
   "ecopvver" : "3.60",
   "maxpvver" : "3.70",
   "webver" : "3.70",
-  "whatsnew" : "Nouveautés : Configuration protégée contre les coupures de courant, avec copie de secours.<br>Voir les informations sur GitHub.<br>Rendez-vous à <a href=\"https://github.com/checkrayns/MaxPV\" target=\"_blank\">https://github.com/checkrayns/MaxPV</a><br>"
+  "whatsnew" : "Nouveautés : Configuration protégée contre les coupures de courant, avec copie de secours.<br>Voir les informations sur GitHub.<br>Rendez-vous à <a href=\"https://github.com/checkrayns/Solanome\" target=\"_blank\">https://github.com/checkrayns/Solanome</a><br>"
 }
