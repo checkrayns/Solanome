@@ -24,8 +24,8 @@
 // ***********************************************************************************
 
 // Version MaxPV!
-#define MAXPV_VERSION      "3.70"
-#define MAXPV_VERSION_FULL "Solanome 3.70"
+#define MAXPV_VERSION      "4.0"
+#define MAXPV_VERSION_FULL "Solanome 4.0"
 
 // SSID pour le Config Portal
 #define SSID_CP            "Solanome"

@@ -1,6 +1,6 @@
 {
   "ecopvver" : "3.60",
-  "maxpvver" : "3.70",
-  "webver" : "3.70",
-  "whatsnew" : "Nouveautés : Configuration protégée contre les coupures de courant, avec copie de secours.<br>Voir les informations sur GitHub.<br>Rendez-vous à <a href=\"https://github.com/checkrayns/Solanome\" target=\"_blank\">https://github.com/checkrayns/Solanome</a><br>"
+  "maxpvver" : "4.0",
+  "webver" : "4.0",
+  "whatsnew" : "Nouveautés : MaxPV! devient Solanome. Nouvelle adresse http://solanome.local, nouveau logo.<br>Voir les informations sur GitHub.<br>Rendez-vous à <a href=\"https://github.com/checkrayns/Solanome\" target=\"_blank\">https://github.com/checkrayns/Solanome</a><br>"
 }

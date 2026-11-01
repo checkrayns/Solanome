@@ -203,6 +203,12 @@ Les pins d'entrée-sortie de l'Arduino Nano sont configurables dans le code EcoP
 La pin D9 est utilisé pour la sonde de température 1-Wire depuis la version 3.60.
 
 # Versions
+### **V 4.0** - 01/11/2026
+* MaxPV! devient **Solanome** : nouveau nom et nouveau logo dans l'interface, icône d'application, couleurs de l'interface alignées sur la marque.
+* Nouvelle adresse locale **http://solanome.local**, réseau Wifi du point d'accès **Solanome**, appareil **Solanome** dans Home Assistant (entités et historique conservés), domaine d'authentification *Solanome*.
+* Binaire renommé *Solanome_firmware.bin* (répertoire *Binaires Solanome*), dépôt GitHub https://github.com/checkrayns/Solanome.
+* Inchangés : canaux MQTT *maxpv/...*, API, configuration enregistrée et identifiants. Voir la section *Nouveau nom* ci-dessus.
+* Versions : Solanome 4.0, site Web 4.0, EcoPV 3.60.
 ### **V 3.70** - 01/11/2026
 * Configuration protégée contre les coupures de courant : le fichier de configuration est écrit en entier dans un fichier temporaire, contrôlé, puis remplacé d'un coup. La configuration précédente est conservée en copie de secours (*config.bak*).
 * Au démarrage, si la configuration est absente ou illisible, MaxPV! utilise la copie de secours (événement dans le journal). La configuration n'est effacée que si les deux fichiers ont un contenu incorrect ; en cas de manque de mémoire, MaxPV! redémarre sans rien effacer.
