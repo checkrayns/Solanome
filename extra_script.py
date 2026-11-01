@@ -1,6 +1,7 @@
 import os
 import re
 import gzip
+import hashlib
 Import("env")
 
 SOURCECODE = "./MaxPV3/maxpv_defines.h"
@@ -53,6 +54,16 @@ def generate_web_files():
     names = sorted(n for n in os.listdir(WEB_DIR)
                    if os.path.isfile(os.path.join(WEB_DIR, n)) and n not in WEB_EXCLUDED)
 
+    # Empreinte des fichiers partagés (css, js...) : les pages les appellent par app.css?v=__ASSETS__,
+    # le navigateur les conserve en cache et l'empreinte change dès que l'un d'eux est modifié,
+    # même sans changement du numéro de version
+    assets = hashlib.sha1()
+    for name in names:
+        if not name.endswith(".html"):
+            with open(os.path.join(WEB_DIR, name), "rb") as f:
+                assets.update(name.encode() + b"\0" + f.read())
+    assets_token = assets.hexdigest()[:10].encode()
+
     out = []
     out.append("// Fichier généré automatiquement par extra_script.py à partir de MaxPV3/data")
     out.append("// NE PAS MODIFIER : modifier les fichiers de MaxPV3/data puis recompiler")
@@ -78,10 +89,8 @@ def generate_web_files():
             raise Exception(f"Type MIME inconnu pour {name}")
         with open(os.path.join(WEB_DIR, name), "rb") as f:
             raw = f.read()
-        # Dans les pages, __WEBVER__ est remplacé par la version du site : les fichiers partagés
-        # sont appelés par app.css?v=__WEBVER__ et peuvent ainsi être conservés en cache par le navigateur
         if ext == ".html":
-            raw = raw.replace(b"__WEBVER__", web_version.encode())
+            raw = raw.replace(b"__ASSETS__", assets_token)
         # mtime=0 pour que le fichier généré ne change que si le contenu change
         data = gzip.compress(raw, compresslevel=9, mtime=0)
         var = "WEB_" + re.sub(r"[^A-Za-z0-9]", "_", name)

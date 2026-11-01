@@ -2565,7 +2565,7 @@ void sendWebFile (AsyncWebServerRequest * request, const webFile* file)
   }
   AsyncWebServerResponse *response = request->beginResponse_P ( 200, file->mime, file->data, file->len );
   response->addHeader ( F("Content-Encoding"), F("gzip") );
-  // Fichier appelé avec la version du site (app.css?v=3.65) : il ne change qu'avec le firmware
+  // Fichier appelé avec l'empreinte de son contenu (app.css?v=...) : une nouvelle version porte une autre empreinte
   if ( request->hasParam ( F("v") ) ) response->addHeader ( F("Cache-Control"), F("max-age=31536000, immutable") );
   request->send ( response );
 }
