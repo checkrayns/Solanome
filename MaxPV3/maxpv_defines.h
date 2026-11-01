@@ -24,8 +24,8 @@
 // ***********************************************************************************
 
 // Version MaxPV!
-#define MAXPV_VERSION      "3.66"
-#define MAXPV_VERSION_FULL "MaxPV! 3.66"
+#define MAXPV_VERSION      "3.67"
+#define MAXPV_VERSION_FULL "MaxPV! 3.67"
 
 // SSID pour le Config Portal
 #define SSID_CP            "MaxPV"

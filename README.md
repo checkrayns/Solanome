@@ -187,6 +187,13 @@ Les pins d'entrée-sortie de l'Arduino Nano sont configurables dans le code EcoP
 La pin D9 est utilisé pour la sonde de température 1-Wire depuis la version 3.60.
 
 # Versions
+### **V 3.67** - 01/11/2026
+* Mode Administrateur : les pages Administration, Paramétrage avancé, Assistant de configuration et Mise à jour, ainsi que les commandes du tableau de bord, sont réservées à l'administrateur. **Identifiants d'origine : admin / maxpv**, à changer dans la page Administration.
+* Authentification HTTP Digest de toutes les requêtes qui modifient MaxPV! (actions, réglages, mise à jour du firmware, export de la configuration) et protection contre le CSRF.
+* **Changement d'API : `/api/action` et `/api/set` doivent être appelées en POST avec authentification Digest.** Les intégrations domotiques qui utilisaient ces adresses en GET doivent être adaptées (voir la section Authentification). Le pilotage par MQTT est inchangé.
+* La configuration exportée ou consultée ne contient plus les mots de passe (MQTT et interface).
+* Correction : le mot de passe MQTT n'était lu dans la configuration que si l'utilisateur MQTT était présent.
+* Versions : MaxPV! 3.67, site Web 3.67, EcoPV 3.60.
 ### **V 3.66** - 01/11/2026
 * Nouvelle interface Web responsive, utilisable sur téléphone et ordinateur : navigation en bas d'écran sur téléphone, menu latéral sur ordinateur, thème clair ou sombre selon le réglage du système.
 * Nouveau tableau de bord en page d'accueil : import / export, routage, température ECS, commandes boost, SSR et relais, derniers événements, mise à jour disponible.

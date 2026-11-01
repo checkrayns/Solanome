@@ -1,6 +1,6 @@
 {
   "ecopvver" : "3.60",
-  "maxpvver" : "3.66",
-  "webver" : "3.66",
-  "whatsnew" : "Nouveautés : Nouvelle interface Web responsive, utilisable sur téléphone et ordinateur, sans connexion à Internet.<br>Voir les informations sur GitHub.<br>Rendez-vous à <a href=\"https://github.com/checkrayns/MaxPV\" target=\"_blank\">https://github.com/checkrayns/MaxPV</a><br>"
+  "maxpvver" : "3.67",
+  "webver" : "3.67",
+  "whatsnew" : "Nouveautés : Mode Administrateur protégé par mot de passe (identifiants d'origine admin / maxpv, à changer). Attention : les commandes HTTP /api/action et /api/set passent en POST avec authentification.<br>Voir les informations sur GitHub.<br>Rendez-vous à <a href=\"https://github.com/checkrayns/MaxPV\" target=\"_blank\">https://github.com/checkrayns/MaxPV</a><br>"
 }
