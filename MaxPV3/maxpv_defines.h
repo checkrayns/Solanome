@@ -46,11 +46,6 @@
 #define MAXPV_MDNS      "maxpv"         // mDNS pour accès local
 #define HTTP_PORT       80              // Port serveur web MaxPV!
 
-// Taille de la configuration JSON MaxPV! pour la manipulation
-// Attention : un échec de lecture de config.json au démarrage efface la configuration,
-// la taille doit couvrir toutes les clés et les chaînes les plus longues
-#define JSON_CONFIG_SIZE    2048        // en caractères
-
 // Accès protégé à l'interface Web : pages de configuration, mise à jour, actions et réglages
 // Authentification HTTP Digest, identifiant et mot de passe modifiables dans la page Administration
 #define DEFAULT_WEB_USER    "admin"

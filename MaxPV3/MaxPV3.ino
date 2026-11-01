@@ -777,49 +777,49 @@ bool configRead(const String& configString)
   if (configString != "")
   {
     // buffer pour manipuler le fichier de configuration de MaxPV!
-    DynamicJsonDocument jsonConfig(JSON_CONFIG_SIZE);
+    JsonDocument jsonConfig;
     
     DeserializationError error = deserializeJson(jsonConfig, configString);
     if (!error)
     {
-      if (jsonConfig.containsKey("ip"))   // Il faut au moins que l'IP soit présente pour que le fichier soit considéré comme valide
+      if (!jsonConfig["ip"].isNull())   // Il faut au moins que l'IP soit présente pour que le fichier soit considéré comme valide
       {
                                                           static_ip = jsonConfig["ip"].as<String>();
-        if (jsonConfig.containsKey("gateway"))            static_gw = jsonConfig["gateway"].as<String>(); else shouldSaveConfig = true;
-        if (jsonConfig.containsKey("subnet"))             static_sn = jsonConfig["subnet"].as<String>(); else shouldSaveConfig = true;
-        if (jsonConfig.containsKey("dns1"))               static_dns1 = jsonConfig["dns1"].as<String>(); else shouldSaveConfig = true;
-        if (jsonConfig.containsKey("dns2"))               static_dns2 = jsonConfig["dns2"].as<String>(); else shouldSaveConfig = true;
-        if (jsonConfig.containsKey("http_port"))          httpPort = jsonConfig["http_port"]; else shouldSaveConfig = true;
-        if (jsonConfig.containsKey("watchdogwifi_active"))  wtdWifiActive = jsonConfig["watchdogwifi_active"]; else shouldSaveConfig = true;
-        if (jsonConfig.containsKey("boost_duration"))     boostDuration = jsonConfig["boost_duration"]; else shouldSaveConfig = true;
-        if (jsonConfig.containsKey("boost_ratio"))        boostRatio = jsonConfig["boost_ratio"]; else shouldSaveConfig = true;
-        if (jsonConfig.containsKey("mqtt_ip"))            mqttIP = jsonConfig["mqtt_ip"].as<String>(); else shouldSaveConfig = true;
-        if (jsonConfig.containsKey("mqtt_port"))          mqttPort = jsonConfig["mqtt_port"]; else shouldSaveConfig = true;
-        if (jsonConfig.containsKey("mqtt_period"))        mqttPeriod = jsonConfig["mqtt_period"]; else shouldSaveConfig = true;
-        if (jsonConfig.containsKey("mqtt_user"))          mqttUser = jsonConfig["mqtt_user"].as<String>(); else shouldSaveConfig = true;
-        if (jsonConfig.containsKey("mqtt_pass"))          mqttPass = jsonConfig["mqtt_pass"].as<String>(); else shouldSaveConfig = true;
-        if (jsonConfig.containsKey("mqtt_active"))        mqttActive = jsonConfig["mqtt_active"]; else shouldSaveConfig = true;
-        if (jsonConfig.containsKey("boost_timer_hour"))   boostTimerHour = jsonConfig["boost_timer_hour"]; else shouldSaveConfig = true;
-        if (jsonConfig.containsKey("boost_timer_minute")) boostTimerMinute = jsonConfig["boost_timer_minute"]; else shouldSaveConfig = true;
-        if (jsonConfig.containsKey("boost_timer_active")) boostTimerActive = jsonConfig["boost_timer_active"]; else shouldSaveConfig = true;
-        if (jsonConfig.containsKey("remoterelay_active")) relaisDistantActive = jsonConfig["remoterelay_active"]; else shouldSaveConfig = true;
-        if (jsonConfig.containsKey("remoterelay_ip"))     relaisDistantIP = jsonConfig["remoterelay_ip"].as<String>(); else shouldSaveConfig = true;
-        if (jsonConfig.containsKey("remoterelay_port"))   relaisDistantPort = jsonConfig["remoterelay_port"]; else shouldSaveConfig = true;
-        if (jsonConfig.containsKey("remoterelay_on"))     relaisDistantOn = jsonConfig["remoterelay_on"].as<String>(); else shouldSaveConfig = true;
-        if (jsonConfig.containsKey("remoterelay_off"))    relaisDistantOff = jsonConfig["remoterelay_off"].as<String>(); else shouldSaveConfig = true;
-        if (jsonConfig.containsKey("RelayPlus_min"))      relayPlusMin = jsonConfig["RelayPlus_min"]; else shouldSaveConfig = true;
-        if (jsonConfig.containsKey("RelayPlus_max"))      relayPlusMax = jsonConfig["RelayPlus_max"]; else shouldSaveConfig = true;
-        if (jsonConfig.containsKey("RelayPlus_hour"))     relayPlusHour = jsonConfig["RelayPlus_hour"]; else shouldSaveConfig = true;
-        if (jsonConfig.containsKey("RelayPlus_active"))   relayPlusActive = jsonConfig["RelayPlus_active"]; else shouldSaveConfig = true;
-        if (jsonConfig.containsKey("max_temp"))           maxTemp = jsonConfig["max_temp"]; else shouldSaveConfig = true;
-        if (jsonConfig.containsKey("temp_limit_active"))  tempLimitActive = jsonConfig["temp_limit_active"]; else shouldSaveConfig = true;
+        if (!jsonConfig["gateway"].isNull())            static_gw = jsonConfig["gateway"].as<String>(); else shouldSaveConfig = true;
+        if (!jsonConfig["subnet"].isNull())             static_sn = jsonConfig["subnet"].as<String>(); else shouldSaveConfig = true;
+        if (!jsonConfig["dns1"].isNull())               static_dns1 = jsonConfig["dns1"].as<String>(); else shouldSaveConfig = true;
+        if (!jsonConfig["dns2"].isNull())               static_dns2 = jsonConfig["dns2"].as<String>(); else shouldSaveConfig = true;
+        if (!jsonConfig["http_port"].isNull())          httpPort = jsonConfig["http_port"]; else shouldSaveConfig = true;
+        if (!jsonConfig["watchdogwifi_active"].isNull())  wtdWifiActive = jsonConfig["watchdogwifi_active"]; else shouldSaveConfig = true;
+        if (!jsonConfig["boost_duration"].isNull())     boostDuration = jsonConfig["boost_duration"]; else shouldSaveConfig = true;
+        if (!jsonConfig["boost_ratio"].isNull())        boostRatio = jsonConfig["boost_ratio"]; else shouldSaveConfig = true;
+        if (!jsonConfig["mqtt_ip"].isNull())            mqttIP = jsonConfig["mqtt_ip"].as<String>(); else shouldSaveConfig = true;
+        if (!jsonConfig["mqtt_port"].isNull())          mqttPort = jsonConfig["mqtt_port"]; else shouldSaveConfig = true;
+        if (!jsonConfig["mqtt_period"].isNull())        mqttPeriod = jsonConfig["mqtt_period"]; else shouldSaveConfig = true;
+        if (!jsonConfig["mqtt_user"].isNull())          mqttUser = jsonConfig["mqtt_user"].as<String>(); else shouldSaveConfig = true;
+        if (!jsonConfig["mqtt_pass"].isNull())          mqttPass = jsonConfig["mqtt_pass"].as<String>(); else shouldSaveConfig = true;
+        if (!jsonConfig["mqtt_active"].isNull())        mqttActive = jsonConfig["mqtt_active"]; else shouldSaveConfig = true;
+        if (!jsonConfig["boost_timer_hour"].isNull())   boostTimerHour = jsonConfig["boost_timer_hour"]; else shouldSaveConfig = true;
+        if (!jsonConfig["boost_timer_minute"].isNull()) boostTimerMinute = jsonConfig["boost_timer_minute"]; else shouldSaveConfig = true;
+        if (!jsonConfig["boost_timer_active"].isNull()) boostTimerActive = jsonConfig["boost_timer_active"]; else shouldSaveConfig = true;
+        if (!jsonConfig["remoterelay_active"].isNull()) relaisDistantActive = jsonConfig["remoterelay_active"]; else shouldSaveConfig = true;
+        if (!jsonConfig["remoterelay_ip"].isNull())     relaisDistantIP = jsonConfig["remoterelay_ip"].as<String>(); else shouldSaveConfig = true;
+        if (!jsonConfig["remoterelay_port"].isNull())   relaisDistantPort = jsonConfig["remoterelay_port"]; else shouldSaveConfig = true;
+        if (!jsonConfig["remoterelay_on"].isNull())     relaisDistantOn = jsonConfig["remoterelay_on"].as<String>(); else shouldSaveConfig = true;
+        if (!jsonConfig["remoterelay_off"].isNull())    relaisDistantOff = jsonConfig["remoterelay_off"].as<String>(); else shouldSaveConfig = true;
+        if (!jsonConfig["RelayPlus_min"].isNull())      relayPlusMin = jsonConfig["RelayPlus_min"]; else shouldSaveConfig = true;
+        if (!jsonConfig["RelayPlus_max"].isNull())      relayPlusMax = jsonConfig["RelayPlus_max"]; else shouldSaveConfig = true;
+        if (!jsonConfig["RelayPlus_hour"].isNull())     relayPlusHour = jsonConfig["RelayPlus_hour"]; else shouldSaveConfig = true;
+        if (!jsonConfig["RelayPlus_active"].isNull())   relayPlusActive = jsonConfig["RelayPlus_active"]; else shouldSaveConfig = true;
+        if (!jsonConfig["max_temp"].isNull())           maxTemp = jsonConfig["max_temp"]; else shouldSaveConfig = true;
+        if (!jsonConfig["temp_limit_active"].isNull())  tempLimitActive = jsonConfig["temp_limit_active"]; else shouldSaveConfig = true;
 
         // Identifiants de l'interface Web : une valeur vide est ignorée pour ne jamais laisser l'accès ouvert
-        if (jsonConfig.containsKey("web_user")) {
+        if (!jsonConfig["web_user"].isNull()) {
           if (jsonConfig["web_user"].as<String>().length() > 0) webUser = jsonConfig["web_user"].as<String>();
         }
         else shouldSaveConfig = true;
-        if (jsonConfig.containsKey("web_pass")) {
+        if (!jsonConfig["web_pass"].isNull()) {
           if (jsonConfig["web_pass"].as<String>().length() > 0) webPass = jsonConfig["web_pass"].as<String>();
         }
         else shouldSaveConfig = true;
@@ -845,7 +845,7 @@ bool configRead(const String& configString)
 void configWrite(void)
 {
   // buffer pour manipuler le fichier de configuration de MaxPV!
-  DynamicJsonDocument jsonConfig(JSON_CONFIG_SIZE);
+  JsonDocument jsonConfig;
 
   jsonConfig["ip"] = static_ip;
   jsonConfig["gateway"] = static_gw;
@@ -907,7 +907,7 @@ void updateWebHA1(void)
 
 String publicConfigJson(void)
 {
-  DynamicJsonDocument jsonConfig(JSON_CONFIG_SIZE);
+  JsonDocument jsonConfig;
   String json;
   File configFile = LittleFS.open(F("/config.json"), "r");
   if (configFile) {
