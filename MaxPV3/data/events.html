@@ -3,192 +3,122 @@
 
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=0.8">
-  <meta name="description" content="">
-  <meta name="author" content="Bernard Legrand">
-  <title>MaxPv! Journal</title>
-
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
-
-  <link href="maxpv.css" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f3f5f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0e1317" media="(prefers-color-scheme: dark)">
+  <title>MaxPV! Journal</title>
+  <link rel="icon" href="favicon.ico">
+  <link href="app.css?v=__WEBVER__" rel="stylesheet">
 </head>
 
-<body onload="loadEvents ( )">
+<body>
 
-  <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="/">MaxPV!</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse"
-        aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarCollapse">
-        <ul class="navbar-nav me-auto mb-2 mb-md-0">
-          <li class="nav-item">
-            <a class="nav-link" href="index.html">Moniteur</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="graph.html">Graphiques</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="events.html">Journal</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="wizard.html">Assistant de configuration</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="configuration.html">Paramétrage avancé</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="admin.html">Administration</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="maj.html">Update</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="credits.html">Credits</a>
-          </li>
-        </ul>
+  <main class="content page-narrow">
+
+    <header class="topbar">
+      <div>
+        <h1>Journal</h1>
+        <p class="sub" id="summary">&nbsp;</p>
       </div>
+      <button class="btn" type="button" id="refresh">Actualiser</button>
+    </header>
+
+    <p class="lead">
+      Derniers événements de MaxPV!, du plus récent au plus ancien. Le journal est conservé en mémoire et repart
+      à zéro à chaque redémarrage. Il est aussi disponible en <a href="api/events" target="_blank">JSON</a>
+      et publié sur le topic MQTT <code>maxpv/event</code>.
+    </p>
+
+    <div class="chips" role="group" aria-label="Filtrer les événements" id="filters">
+      <button type="button" data-filter="all" aria-pressed="true">Tous</button>
+      <button type="button" data-filter="boost" aria-pressed="false">Boost</button>
+      <button type="button" data-filter="ssr" aria-pressed="false">Mode SSR</button>
+      <button type="button" data-filter="boot" aria-pressed="false">Démarrages</button>
+      <button type="button" data-filter="network" aria-pressed="false">Wifi et MQTT</button>
     </div>
-  </nav>
 
-  <main class="container-fluid">
-    <div class="bg-light p-5 rounded">
-      <h1>Journal des événements</h1>
-      <p class="lead">
-        Derniers événements de MaxPV!, du plus récent au plus ancien. Le journal est conservé en mémoire
-        et repart à zéro à chaque redémarrage. Il est aussi disponible en <a href="api/events" target="_blank">JSON</a>
-        et publié sur le topic MQTT <code>maxpv/event</code>.
-      </p>
+    <section class="card">
+      <ul class="list journal" id="events"><li class="empty">Chargement…</li></ul>
+    </section>
 
-      <div class="row g-2 mb-3 align-items-center">
-        <div class="col-auto">
-          <select class="form-select" id="filter" onchange="renderEvents ( )">
-            <option value="all" selected>Tous les événements</option>
-            <option value="boost">Boost</option>
-            <option value="ssr">Mode SSR</option>
-            <option value="boot">Démarrages</option>
-            <option value="network">Wifi et MQTT</option>
-          </select>
-        </div>
-        <div class="col-auto">
-          <button class="btn btn-primary" type="button" onclick="loadEvents ( ); this.blur ( )">Actualiser</button>
-        </div>
-        <div class="col-auto">
-          <span class="text-muted" id="summary"></span>
-        </div>
-      </div>
-
-      <table class="table table-hover">
-        <thead>
-          <tr class="table-primary">
-            <th scope="col">Date</th>
-            <th scope="col">Catégorie</th>
-            <th scope="col">Evénement</th>
-          </tr>
-        </thead>
-        <tbody id="events">
-          <tr>
-            <td colspan="3" class="text-center">Chargement...</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
   </main>
 
-
+  <script src="app.js?v=__WEBVER__"></script>
   <script>
 
-    var journal = null;
+    const { fmt } = MaxPV;
 
-    // Catégorie, filtre et couleur du badge pour chaque type d'événement
-    var eventTypes = {
-      boot:          { label: "Démarrage", filter: "boot",    badge: "bg-dark" },
-      reboot:        { label: "Démarrage", filter: "boot",    badge: "bg-dark" },
-      boost_on:      { label: "Boost",     filter: "boost",   badge: "bg-danger" },
-      boost_off:     { label: "Boost",     filter: "boost",   badge: "bg-secondary" },
-      boost_refused: { label: "Boost",     filter: "boost",   badge: "bg-warning text-dark" },
-      ssr_mode:      { label: "SSR",       filter: "ssr",     badge: "bg-primary" },
-      wifi_lost:     { label: "Wifi",      filter: "network", badge: "bg-warning text-dark" },
-      wifi_ok:       { label: "Wifi",      filter: "network", badge: "bg-success" },
-      wifi_watchdog: { label: "Wifi",      filter: "network", badge: "bg-warning text-dark" },
-      mqtt_lost:     { label: "MQTT",      filter: "network", badge: "bg-warning text-dark" },
-      mqtt_ok:       { label: "MQTT",      filter: "network", badge: "bg-success" }
+    // Catégorie, filtre et couleur de la pastille pour chaque type d'événement
+    const TYPES = {
+      boot:          ["Démarrage", "boot",    "info"],
+      reboot:        ["Démarrage", "boot",    "info"],
+      boost_on:      ["Boost",     "boost",   "hot"],
+      boost_off:     ["Boost",     "boost",   ""],
+      boost_refused: ["Boost",     "boost",   "warn"],
+      ssr_mode:      ["SSR",       "ssr",     "info"],
+      wifi_lost:     ["Wifi",      "network", "bad"],
+      wifi_ok:       ["Wifi",      "network", "ok"],
+      wifi_watchdog: ["Wifi",      "network", "warn"],
+      mqtt_lost:     ["MQTT",      "network", "bad"],
+      mqtt_ok:       ["MQTT",      "network", "ok"]
     };
 
-    function formatUptime(seconds) {
-      var d = Math.floor(seconds / 86400);
-      var h = Math.floor((seconds % 86400) / 3600);
-      var m = Math.floor((seconds % 3600) / 60);
-      var s = seconds % 60;
-      var text = (d > 0) ? d + " j " : "";
-      return text + String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
-    }
+    let journal = null;
+    let filter = "all";
 
-    function formatDate(event) {
-      // time = 0 : l'heure NTP n'est pas connue, on affiche le temps depuis le démarrage
-      if (event.time == 0) return "Démarrage + " + formatUptime(event.uptime);
-      return new Date(event.time * 1000).toLocaleString("fr-FR");
-    }
-
-    function renderEvents() {
-      var tbody = document.getElementById("events");
-      var filter = document.getElementById("filter").value;
-      tbody.innerHTML = "";
-      if (journal == null) return;
-
-      var shown = 0;
-      journal.events.forEach(function (event) {
-        var info = eventTypes[event.type] || { label: event.type, filter: "other", badge: "bg-secondary" };
-        if ((filter != "all") && (info.filter != filter)) return;
-
-        var row = tbody.insertRow();
-        var date = row.insertCell();
-        var category = row.insertCell();
-        var message = row.insertCell();
-        var badge = document.createElement("span");
-
-        date.className = "text-nowrap";
-        date.textContent = formatDate(event);
-        badge.className = "badge " + info.badge;
-        badge.textContent = info.label;
-        category.appendChild(badge);
-        message.textContent = event.msg;
+    function render() {
+      const list = document.getElementById("events");
+      list.innerHTML = "";
+      if (!journal) return;
+      let shown = 0;
+      journal.events.forEach((event) => {
+        const info = TYPES[event.type] || [event.type, "other", ""];
+        if ((filter !== "all") && (info[1] !== filter)) return;
+        const li = document.createElement("li");
+        const time = document.createElement("time");
+        const msg = document.createElement("span");
+        const pill = document.createElement("span");
+        time.textContent = fmt.eventTime(event);
+        pill.className = "pill" + (info[2] ? " " + info[2] : "");
+        pill.textContent = info[0];
+        msg.className = "msg";
+        msg.append(pill, document.createTextNode(event.msg));
+        li.append(time, msg);
+        list.appendChild(li);
         shown++;
       });
+      if (!shown) list.innerHTML = '<li class="empty">Aucun événement</li>';
+    }
 
-      if (shown == 0) {
-        var cell = tbody.insertRow().insertCell();
-        cell.colSpan = 3;
-        cell.className = "text-center";
-        cell.textContent = "Aucun événement";
+    async function load() {
+      try {
+        journal = await MaxPV.getJSON("api/events");
+        document.getElementById("summary").textContent =
+          journal.events.length + " événement(s) sur " + journal.total + " depuis le démarrage (capacité " + journal.size + ")";
+        render();
+      }
+      catch (e) {
+        document.getElementById("summary").textContent = "Journal inaccessible";
       }
     }
 
-    function loadEvents() {
-      var xhttp = new XMLHttpRequest();
-      xhttp.onreadystatechange = function () {
-        if (this.readyState == 4 && this.status == 200) {
-          journal = JSON.parse(this.responseText);
-          var summary = journal.events.length + " événement(s) affiché(s) sur " + journal.total
-            + " depuis le démarrage (capacité " + journal.size + "), en fonctionnement depuis " + formatUptime(journal.uptime);
-          document.getElementById("summary").textContent = summary;
-          renderEvents();
-        }
-      };
-      xhttp.open("GET", "api/events", true);
-      xhttp.send();
-    }
+    document.getElementById("filters").addEventListener("click", (e) => {
+      const button = e.target.closest("button[data-filter]");
+      if (!button) return;
+      filter = button.dataset.filter;
+      document.querySelectorAll("#filters button").forEach((b) => b.setAttribute("aria-pressed", String(b === button)));
+      render();
+    });
 
-    setInterval(function () {
-      loadEvents();
-    }, 10000);
+    document.getElementById("refresh").addEventListener("click", load);
+
+    // Le journal n'est relu que lorsqu'un nouvel événement est signalé par /api/status
+    let lastEvent = -1;
+    MaxPV.onStatus((status) => {
+      if (status && status.lastevent !== lastEvent) { lastEvent = status.lastevent; load(); }
+    });
 
   </script>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa" crossorigin="anonymous"></script>
-
 </body>
 
 </html>

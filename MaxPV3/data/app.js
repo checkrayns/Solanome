@@ -108,6 +108,77 @@ const MaxPV = (() => {
     relay:  (mode) => command("api/set?relaymode&value=" + mode)
   };
 
+  async function getText(path) {
+    if (demo) return Demo.text(path);
+    const response = await fetch(path, { cache: "no-store" });
+    if (!response.ok) throw new Error("HTTP " + response.status);
+    return response.text();
+  }
+
+  // Requête de l'API qui répond "Request successfully processed" en cas de succès
+  async function request(path) {
+    const text = demo ? (Demo.command(path), "Request successfully processed") : await getText(path);
+    if (!text.startsWith("Request successfully")) throw new Error(text);
+    return text;
+  }
+
+  // Actions de l'API : restart, saveparam, loadparam, saveindex, resetindex, format, rebootesp, eraseconfigesp
+  const action = (name) => request("api/action?" + name);
+
+  // Paramètres du routeur EcoPV, numérotés de 1 à 16 comme dans l'API
+  const PARAMS = ["v_calib", "p_calib", "phase_calib", "p_offset", "p_resistance", "p_margin", "gain_p", "gain_i",
+                  "e_reserve", "p_div2_active", "p_div2_idle", "t_div2_on", "t_div2_off", "t_div2_tc", "cnt_calib", "p_installpv"];
+
+  async function getParams() {
+    const values = (await getText("api/get?allparam")).trim().split(",");
+    const params = {};
+    PARAMS.forEach((name, i) => { params[name] = values[i]; });
+    return params;
+  }
+
+  const setParam = (name, value) =>
+    request("api/set?param=" + (PARAMS.indexOf(name) + 1) + "&value=" + encodeURIComponent(String(value).trim()));
+
+  // Configuration de MaxPV! (config.json), valeurs "0"/"1" pour les interrupteurs
+  const getConfig = () => getJSON("api/get?configmaxpv");
+  const setConfig = (config) => request("api/set?configmaxpv&value=" + encodeURIComponent(JSON.stringify(config)));
+
+  // ---------- Notifications ----------
+
+  function toast(message, kind) {
+    let box = document.querySelector(".toasts");
+    if (!box) {
+      box = document.createElement("div");
+      box.className = "toasts";
+      box.setAttribute("role", "status");
+      box.setAttribute("aria-live", "polite");
+      document.body.appendChild(box);
+    }
+    const div = document.createElement("div");
+    div.className = "toast" + (kind ? " " + kind : "");
+    div.textContent = message;
+    box.appendChild(div);
+    setTimeout(() => div.remove(), 5000);
+  }
+
+  // Exécute une opération déclenchée par un bouton : bouton désactivé pendant l'opération,
+  // notification de réussite ou d'échec
+  async function run(button, operation, success) {
+    if (button) button.disabled = true;
+    try {
+      const result = await operation();
+      if (success) toast(success, "ok");
+      return result;
+    }
+    catch (e) {
+      toast("Echec : " + (e && e.message ? e.message : "connexion impossible"), "bad");
+      throw e;
+    }
+    finally {
+      if (button) button.disabled = false;
+    }
+  }
+
   // ---------- Etat en direct ----------
 
   const listeners = [];
@@ -232,6 +303,9 @@ const MaxPV = (() => {
         time: now, uptime: Math.floor(t) + 93784, ecopv: true, rssi: -61, mqtt: "connected", lastevent: id,
         vrms: 231.4, irms: (house + routed) / 231.4, cosphi: 0.97, papp: house + routed + 40, pact: grid,
         prouted: routed, pimport: Math.max(0, grid), pexport: Math.max(0, -grid), pprod: prod, temp: 52, presistance: 2000,
+        dmin: 2.1 + Math.random(), davg: 4.6 + Math.random(), dmax: 7.8 + Math.random(), vbias: 2.497, samples: 1923,
+        statusbyte: "00000001", ecopvuptime: "1:02:" + String(Math.floor(t / 60) % 60).padStart(2, "0") + ":" + String(Math.floor(t) % 60).padStart(2, "0"),
+        index: { routed: 1523.418, import: 8211.902, export: 642.117, prod: 10988.254, relay: 21344 },
         day: { routed: 3.42, import: 1.87, export: 0.95, prod: 9.31, relay: 45 },
         ssr: { mode: boostOn ? "FORCE" : state.ssr, state: boostOn ? "FORCE" : (state.ssr === "AUTO" ? (routed >= 1990 ? "MAX" : (routed > 0 ? "ON" : "OFF")) : state.ssr) },
         relay: { mode: state.relay, state: state.relay === "AUTO" ? "OFF" : state.relay, relayplus: false },
@@ -241,10 +315,43 @@ const MaxPV = (() => {
       };
     }
 
+    const config = {
+      ip: "192.168.1.250", gateway: "192.168.1.1", subnet: "255.255.255.0", dns1: "192.168.1.1", dns2: "8.8.8.8",
+      http_port: 80, watchdogwifi_active: 0, boost_duration: 120, boost_ratio: 100,
+      mqtt_ip: "192.168.1.100", mqtt_port: 1883, mqtt_period: 10, mqtt_user: "", mqtt_pass: "", mqtt_active: 1,
+      boost_timer_hour: 4, boost_timer_minute: 0, boost_timer_active: 0,
+      remoterelay_active: 0, remoterelay_ip: "192.168.1.200", remoterelay_port: 80, remoterelay_on: "/relay0/cmd/1", remoterelay_off: "/relay0/cmd/0",
+      RelayPlus_min: 60, RelayPlus_max: 480, RelayPlus_hour: 21, RelayPlus_active: 0, max_temp: 60, temp_limit_active: 1
+    };
+    const params = ["0.800", "0.112", "12", "-3", "2000", "10", "8", "46", "5", "900", "300", "5", "5", "1", "1.000", "3000"];
+
+    // Historique simulé sur 4 jours, au format CSV de /api/history
+    function history(kind) {
+      const step = 1800, end = Math.floor(Date.now() / 1000 / step) * step;
+      const lines = [kind === "relay" ? "Time,Relais secondaire" : "Time,Import réseau,Export réseau,Production PV,Routage ECS"];
+      for (let t = end - 192 * step; t <= end; t += step) {
+        const hour = new Date(t * 1000).getHours() + new Date(t * 1000).getMinutes() / 60;
+        const sun = Math.max(0, Math.sin((hour - 7) / 13 * Math.PI)) * 2800;
+        const house = 450 + (hour > 18 && hour < 22 ? 900 : 0);
+        const routed = Math.min(2000, Math.max(0, sun - house - 100));
+        const grid = house + routed - sun;
+        if (kind === "relay") lines.push(t + "000," + (sun > 2200 ? 60 + Math.round(30 * Math.random()) : 0));
+        else lines.push(t + "000," + Math.round(Math.max(0, grid)) + "," + Math.round(Math.min(0, grid)) + "," + Math.round(sun) + "," + Math.round(routed));
+      }
+      return lines.join("\r\n");
+    }
+
     return {
       get(path) {
         if (path.startsWith("api/status")) return Promise.resolve(status());
         if (path.startsWith("api/events")) return Promise.resolve({ total: id, size: 64, uptime: 0, time: 0, events: state.events });
+        if (path.startsWith("api/get?configmaxpv")) return Promise.resolve(Object.assign({}, config));
+        return Promise.reject(new Error("démo"));
+      },
+      text(path) {
+        if (path.startsWith("api/get?allparam")) return Promise.resolve(params.join(","));
+        if (path.startsWith("api/history?power")) return Promise.resolve(history("power"));
+        if (path.startsWith("api/history?relay")) return Promise.resolve(history("relay"));
         return Promise.reject(new Error("démo"));
       },
       command(path) {
@@ -259,5 +366,6 @@ const MaxPV = (() => {
 
   document.addEventListener("DOMContentLoaded", renderNav);
 
-  return { demo, getJSON, commands, onStatus, refreshSoon, fmt, newerVersion };
+  return { demo, getJSON, getText, commands, action, getParams, setParam, getConfig, setConfig,
+           toast, run, onStatus, refreshSoon, fmt, newerVersion };
 })();

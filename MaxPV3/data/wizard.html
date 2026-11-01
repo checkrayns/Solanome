@@ -3,536 +3,285 @@
 
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=0.8">
-  <meta name="description" content="">
-  <meta name="author" content="Bernard Legrand">
-  <title>MaxPv! Assistant de configuration</title>
-
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
-
-  <style>
-    #container-cosphi {
-      height: 85px;
-    }
-
-    .hc-cat-title {
-      font-size: 13px;
-      font-weight: bold;
-    }
-
-    .highcharts-figure,
-    .highcharts-data-table table {
-      min-width: 320px;
-      max-width: 800px;
-      margin: 1em auto;
-    }
-
-    .highcharts-data-table table {
-      font-family: Verdana, sans-serif;
-      border-collapse: collapse;
-      border: 1px solid #ebebeb;
-      margin: 10px auto;
-      text-align: center;
-      width: 100%;
-      max-width: 500px;
-    }
-
-    .highcharts-data-table caption {
-      padding: 1em 0;
-      font-size: 1.2em;
-      color: #555;
-    }
-
-    .highcharts-data-table th {
-      font-weight: 600;
-      padding: 0.5em;
-    }
-
-    .highcharts-data-table td,
-    .highcharts-data-table th,
-    .highcharts-data-table caption {
-      padding: 0.5em;
-    }
-
-    .highcharts-data-table thead tr,
-    .highcharts-data-table tr:nth-child(even) {
-      background: #f8f8f8;
-    }
-
-    .highcharts-data-table tr:hover {
-      background: #f1f7ff;
-    }
-  </style>
-
-
-  <link href="maxpv.css" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f3f5f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0e1317" media="(prefers-color-scheme: dark)">
+  <title>MaxPV! Assistant de configuration</title>
+  <link rel="icon" href="favicon.ico">
+  <link href="app.css?v=__WEBVER__" rel="stylesheet">
 </head>
 
-<body onload="fillParam ( )">
+<body>
 
-  <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="/">MaxPV!</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse"
-        aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarCollapse">
-        <ul class="navbar-nav me-auto mb-2 mb-md-0">
-          <li class="nav-item">
-            <a class="nav-link" href="index.html">Moniteur</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="graph.html">Graphiques</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="events.html">Journal</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="wizard.html">Assistant de configuration</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="configuration.html">Paramétrage avancé</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="admin.html">Administration</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="maj.html">Update</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="credits.html">Credits</a>
-          </li>
-        </ul>
-      </div>
-    </div>
-  </nav>
+  <main class="content page-narrow">
 
-  <main class="container-fluid">
-    <div class="bg-light p-5 rounded">
-
-      <h1>Assistant de configuration</h1>
-      <p class="lead">
-      <h4></h4>
-      <span>Cet assistant permet de paramétrer facilement votre routeur. Suivez les étapes les unes après les autres.
-        A tout moment vous pouvez interrompre le processus et recommencer en rafraîchissant cette page dans votre
-        navigateur.</span><br>
-      <span class="text-danger">A la fin, n'oubliez pas de sauvegarder votre configuration à l'étape 10 !</span>
-      </p>
-
-      <p class="lead">
-      <h4>Etape 1</h4>
-      Appuyer sur le bouton pour commencer la configuration du routeur.
-      </p>
-      <div class="d-grid gap-2">
-        <input class="btn btn-primary" type="submit" value="Commencer" onclick="sendAction ( 'resetindex', this ); fillParam ( ); sendAction ( 'restart', this );
-        sendParamByValue ( 'v_calib', '0.800' );
-        this.value = 'Passer à l\'étape 2'; this.style.background = 'green'; this.style.border = 'green'">
-        </input>
-      </div>
-
-      <p class="lead">
-      <h4>Etape 2</h4>
-      Entrer la puissance de votre installation PV en Wc.
-      </p>
-      <div class="row justify-content-start align-items-center">
-        <div class="col-6 text-start">
-          <input type="text" class="form-control text-center" id="p_installpv" placeholder="Puissance (Wc)">
-        </div>
-        <div class="col-3 text-center">
-          Watts (Wc)
-        </div>
-        <div class="col-3 d-grid">
-          <input class="btn btn-primary" type="submit"
-            onclick="sendParam ('p_installpv', this); this.value = 'Transmis'; this.style.background = 'green'; this.style.border = 'green'"></input>
-        </div>
-      </div>
-
-      <p class="lead">
-      <h4>Etape 3</h4>
-      Entrer la puissance de votre chauffe-eau en W.
-      </p>
-      <div class="row justify-content-start align-items-center">
-        <div class="col-6 text-start">
-          <input type="text" class="form-control text-center" id="p_resistance" placeholder="Puissance (W)">
-        </div>
-        <div class="col-3 text-center">
-          Watts
-        </div>
-        <div class="col-3 d-grid">
-          <input class="btn btn-primary" type="submit"
-            onclick="sendParam ('p_resistance', this); calculGain ( ); this.value = 'Transmis'; this.style.background = 'green'; this.style.border = 'green'"></input>
-        </div>
-      </div>
-
-      <p class="lead">
-      <h4>Etape 4</h4>
-      Ajuster le potentiomètre de la carte électronique pour afficher la tension secteur correcte.
-      </p>
-      <div class="row justify-content-start align-items-center">
-        <div class="col-6 text-center">
-          <span id="vrms">-----</span>
-        </div>
-        <div class="col-3 text-center">
-          Volts
-        </div>
-      </div>
-
-      <p class="lead">
-      <h4>Etape 5</h4>
-      Clipser la pince ampèremétrique autour du fil de phase en sortie de votre disjoncteur principal.<br>
-      Allumer quelques appareils pour avoir une consommation de l'ordre de 2000 à 3000 W.<br>
-      Lorsque cela est fait, indiquer la puissance apparente en VA lue sur votre compteur et cliquer sur le bouton.
-      </p>
-      <div class="row justify-content-start align-items-center">
-        <div class="col-6 text-start">
-          <input type="text" class="form-control text-center" id="papp_input" value="2500" placeholder="Puissance (VA)">
-        </div>
-        <div class="col-3 text-center">
-          VA
-        </div>
-        <div class="col-3 d-grid">
-          <input class="btn btn-primary" type="submit"
-            onclick="calculPCalib ( this ); this.value = 'Transmis'; this.style.background = 'green'; this.style.border = 'green'"></input>
-        </div>
-      </div>
-
-      <p class="lead">
-      <h4>Etape 6</h4>
-      Dé-clipser la pince ampèremétrique et refermer la sans aucun fil à l'intérieur.<br>
-      Eloigner la pince de tous fils ou cables électriques.<br>
-      Lorsque cela est fait, cliquer sur le bouton pour corriger l'offset.
-      </p>
-      <div class="d-grid gap-2">
-        <input class="btn btn-primary" type="submit" value="Correction offset"
-          onclick="correctionOffset ( this ); this.value = 'Correction offset transmise'; this.style.background = 'green'; this.style.border = 'green'">
-        </input>
-      </div>
-
-      <p class="lead">
-      <h4>Etape 7</h4>
-      Clipser la pince ampèremétrique autour du fil de phase d'un appareil électrique constitué d'une résistance
-      électrique
-      pure : chauffe-eau, radiateur, bouilloire... d'une puissance comprise entre 1500 et 3000 W. Allumer
-      l'appareil.<br>
-      Observer l'indicateur. Bouger le curseur pas à pas pour obtenir une valeur maximale (de l'ordre de 1).<br>
-      A chaque changement, attendre 2 secondes pour obtenir une lecture stable. Lorsque le réglage est satisfaisant,
-      eteindre l'appareil et passer à l'étape suivante.
-      </p>
+    <header class="topbar">
       <div>
-        <figure class="highcharts-figure">
-          <div id="container-cosphi"></div>
-          <p class="highcharts-description"></p>
-        </figure>
+        <h1>Assistant de configuration</h1>
+        <p class="sub">Paramétrage du routeur en 10 étapes</p>
       </div>
-      <div class="d-grid gap-2 text-center">
-        <span class="text-primary" id="cosphi">
-          <h5>-----</h5>
-        </span>
-      </div>
-      <div>
-        <input type="range" class="form-range" min="0" max="24" step="1" id="phase_calib"
-          oninput="sendParam ( 'phase_calib', this )">
-      </div>
+    </header>
 
-      <p class="lead">
-      <h4>Etape 8</h4>
-      Si une charge secondaire est connectée au relais tout ou rien, indiquer sa puissance, sinon passer à l'étape
-      suivante.<br>
-      </p>
-      <div class="row justify-content-start align-items-center">
-        <div class="col-6 text-start">
-          <input type="text" class="form-control text-center" id="psecondaire_input" value="1000"
-            placeholder="Puissance (W)">
-        </div>
-        <div class="col-3 text-center">
-          Watts
-        </div>
-        <div class="col-3 d-grid">
-          <input class="btn btn-primary" type="submit"
-            onclick="configRelay2 ( this ); this.value = 'Transmis'; this.style.background = 'green'; this.style.border = 'green'"></input>
-        </div>
-      </div>
+    <p class="lead">
+      Suivez les étapes dans l'ordre. Vous pouvez recommencer à tout moment en rechargeant la page.
+      N'oubliez pas de sauvegarder le paramétrage à la dernière étape.
+    </p>
 
-      <p class="lead">
-      <h4>Etape 9</h4>
-      Si un compteur à impulsion est employé, indiquer le poids des impulsions en Wh, sinon passer à l'étape
-      suivante.
-      </p>
-      <div class="row justify-content-start align-items-center">
-        <div class="col-6 text-start">
-          <input type="text" class="form-control text-center" id="cnt_calib" placeholder="Wh / imp">
-        </div>
-        <div class="col-3 text-center">
-          Wh / imp
-        </div>
-        <div class="col-3 d-grid">
-          <input class="btn btn-primary" type="submit"
-            onclick="sendParam ('cnt_calib', this); this.value = 'Transmis'; this.style.background = 'green'; this.style.border = 'green'"></button>
-        </div>
-      </div>
+    <div class="stack steps">
 
-      <p class="lead">
-      <h4>Etape 10</h4>
-      <span>Vous avez terminé la configuration.</span><br>
-      <span class="text-danger">Appuyer sur le bouton ci-dessous pour sauvegarder les paramètres du routeur.</span><br>
-      <span>Installer définitivement le routeur et clipser la pince ampèremétrique autour du fil de phase en sortie de
-        votre disjoncteur principal.
-        Si le fonctionnement est incorrect, retourner la pince ampèremétrique.
-      </span>
-      </p>
-      <div class="d-grid gap-2">
-        <input class="btn btn-primary" type="submit" value="Sauver le paramétrage"
-          onclick="sendAction ( 'saveparam', this ); sendAction ( 'restart', this ); fillParam ( ); 
-  this.value = 'Paramètres sauvegardés'; this.style.background = 'green'; this.style.border = 'green'; 
-  alert('C\'est terminé, MaxPV! est maintenant opérationnel.<br>Vous pouvez visualiser le fonctionnement sur la page <a href=\'index.html\'>Moniteur</a> ou consulter les paramètres du routeur sur la page <a href=\'configuration.html\'>Configuration avancée</a>.', 'success', 'liveAlertPlaceholderWizardSubmit');">
-        </input>
-        <div class="fixed-bottom" id="liveAlertPlaceholderWizardSubmit"></div>
-      </div>
-      <br>
+      <section class="card step" id="step1">
+        <h2 class="card-title">Démarrage</h2>
+        <p class="hint">Remet les index à zéro, redémarre le routeur et prépare le calibrage de la tension.</p>
+        <div class="btn-row" style="margin-top: 14px;">
+          <button class="btn primary" type="button" id="start">Commencer</button>
+        </div>
+      </section>
+
+      <section class="card step" id="step2">
+        <h2 class="card-title">Installation photovoltaïque</h2>
+        <p class="hint">Puissance crête de votre installation.</p>
+        <div class="inline-form">
+          <input type="text" inputmode="decimal" id="p_installpv" placeholder="Puissance (Wc)" aria-label="Puissance de l'installation en Wc">
+          <button class="btn primary" type="button" id="send-installpv">Envoyer</button>
+        </div>
+      </section>
+
+      <section class="card step" id="step3">
+        <h2 class="card-title">Chauffe-eau</h2>
+        <p class="hint">Puissance de la résistance du chauffe-eau. Les gains de régulation sont calculés à partir de cette valeur.</p>
+        <div class="inline-form">
+          <input type="text" inputmode="decimal" id="p_resistance" placeholder="Puissance (W)" aria-label="Puissance du chauffe-eau en W">
+          <button class="btn primary" type="button" id="send-resistance">Envoyer</button>
+        </div>
+      </section>
+
+      <section class="card step" id="step4">
+        <h2 class="card-title">Tension secteur</h2>
+        <p class="hint">Ajustez le potentiomètre de la carte électronique pour afficher la tension secteur correcte.</p>
+        <div class="metric" style="margin-top: 12px;"><span id="vrms">—</span><small>V</small></div>
+      </section>
+
+      <section class="card step" id="step5">
+        <h2 class="card-title">Calibrage de la puissance</h2>
+        <p class="hint">
+          Clipsez la pince ampèremétrique autour du fil de phase en sortie du disjoncteur principal. Allumez quelques
+          appareils pour consommer 2000 à 3000 W, puis indiquez la puissance apparente lue sur votre compteur.
+        </p>
+        <div class="inline-form">
+          <input type="text" inputmode="decimal" id="papp_input" value="2500" aria-label="Puissance apparente lue sur le compteur en VA">
+          <button class="btn primary" type="button" id="send-pcalib">Calibrer</button>
+        </div>
+        <div class="metric-sub">Puissance apparente mesurée : <b id="papp">—</b></div>
+      </section>
+
+      <section class="card step" id="step6">
+        <h2 class="card-title">Correction de l'offset</h2>
+        <p class="hint">
+          Déclipsez la pince et refermez-la sans aucun fil à l'intérieur, loin de tout câble électrique,
+          puis lancez la correction.
+        </p>
+        <div class="btn-row" style="margin-top: 14px;">
+          <button class="btn primary" type="button" id="send-offset">Corriger l'offset</button>
+        </div>
+        <div class="metric-sub">Puissance active mesurée : <b id="pact">—</b></div>
+      </section>
+
+      <section class="card step" id="step7">
+        <h2 class="card-title">Calibrage de la phase</h2>
+        <p class="hint">
+          Clipsez la pince autour du fil d'un appareil à résistance pure (chauffe-eau, radiateur, bouilloire)
+          de 1500 à 3000 W et allumez-le. Déplacez le curseur pas à pas, en attendant quelques secondes à chaque fois,
+          pour obtenir le facteur de puissance le plus proche de 1. Eteignez ensuite l'appareil.
+        </p>
+        <div class="metric" style="margin-top: 12px;" id="cosphi">—</div>
+        <div class="metric-sub">Meilleure valeur : <b id="cosphi-max">—</b></div>
+        <div class="gauge" aria-hidden="true"><span class="max" id="gauge-max"></span><span class="value" id="gauge-value"></span></div>
+        <div class="gauge-scale" aria-hidden="true"><span>0,98</span><span>0,99</span><span>1,00</span><span>1,01</span><span>1,02</span></div>
+        <label class="field" style="margin-top: 14px;">
+          <span>Réglage de la phase : <b id="phase-value">—</b></span>
+          <input type="range" min="0" max="24" step="1" id="phase_calib">
+        </label>
+      </section>
+
+      <section class="card step" id="step8">
+        <h2 class="card-title">Charge secondaire</h2>
+        <p class="hint">Si une charge est branchée sur le relais secondaire, indiquez sa puissance. Sinon, passez à l'étape suivante.</p>
+        <div class="inline-form">
+          <input type="text" inputmode="decimal" id="psecondaire_input" value="1000" aria-label="Puissance de la charge secondaire en W">
+          <button class="btn primary" type="button" id="send-relay2">Envoyer</button>
+        </div>
+      </section>
+
+      <section class="card step" id="step9">
+        <h2 class="card-title">Compteur d'impulsions</h2>
+        <p class="hint">Si un compteur à impulsions est utilisé, indiquez le poids des impulsions. Sinon, passez à l'étape suivante.</p>
+        <div class="inline-form">
+          <input type="text" inputmode="decimal" id="cnt_calib" placeholder="Wh / impulsion" aria-label="Poids des impulsions en Wh">
+          <button class="btn primary" type="button" id="send-cntcalib">Envoyer</button>
+        </div>
+      </section>
+
+      <section class="card step" id="step10">
+        <h2 class="card-title">Sauvegarde</h2>
+        <p class="hint">
+          Sauvegardez le paramétrage du routeur. Installez ensuite définitivement le routeur, pince autour du fil de
+          phase en sortie du disjoncteur principal. Si le fonctionnement est incorrect, retournez la pince.
+        </p>
+        <div class="btn-row" style="margin-top: 14px;">
+          <button class="btn primary" type="button" id="save">Sauver le paramétrage</button>
+        </div>
+      </section>
+
     </div>
+
   </main>
 
-  <script src="https://code.highcharts.com/highcharts.js"></script>
-  <script src="https://code.highcharts.com/modules/bullet.js"></script>
-  <script src="https://code.highcharts.com/modules/exporting.js"></script>
-  <script src="https://code.highcharts.com/modules/export-data.js"></script>
-  <script src="https://code.highcharts.com/modules/accessibility.js"></script>
-
+  <script src="app.js?v=__WEBVER__"></script>
   <script>
 
-    const nb_param = 16;
-    const paramList = ["FAKE", "v_calib", "p_calib", "phase_calib", "p_offset",
-      "p_resistance", "p_margin", "gain_p", "gain_i",
-      "e_reserve", "p_div2_active", "p_div2_idle", "t_div2_on",
-      "t_div2_off", "t_div2_tc", "cnt_calib", "p_installpv"];
+    const $ = (id) => document.getElementById(id);
+    const { fmt } = MaxPV;
+    const num = (id) => Number(String($(id).value).replace(",", "."));
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-    var EcoPV_p_calib = 0.1;
-    var EcoPV_p_offset = 0.0;
+    let ecopvPCalib = 0.1;
+    let ecopvPOffset = 0.0;
+    let cosphiMax = 0.0;
+    let last = null;
 
-    var cosphiMax = 0.0;
+    function done(step) { $(step).classList.add("done"); }
 
-    const alert = (message, type, eleId) => {
-      const wrapper = document.createElement('div')
-      wrapper.innerHTML = [
-        `<div class="alert alert-${type} alert-dismissible fade show" role="alert">`,
-        `   <div>${message}</div>`,
-        '   <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>',
-        '</div>'
-      ].join('')
-      document.getElementById(eleId).append(wrapper)
+    async function fillParams() {
+      try {
+        const params = await MaxPV.getParams();
+        ecopvPCalib = Number(params.p_calib);
+        ecopvPOffset = Number(params.p_offset);
+        $("phase_calib").value = params.phase_calib;
+        $("phase-value").textContent = params.phase_calib;
+        $("p_resistance").value = params.p_resistance;
+        $("p_installpv").value = params.p_installpv;
+        $("cnt_calib").value = params.cnt_calib;
+      }
+      catch (e) { MaxPV.toast("Paramètres du routeur inaccessibles", "bad"); }
     }
 
-    var bulletCosphi = Highcharts.chart('container-cosphi', {
-      chart: {
-        inverted: true,
-        marginLeft: 0,
-        type: 'bullet'
-      },
-      title: {
-        text: null
-      },
-      legend: {
-        enabled: false
-      },  
-      plotOptions: {
-        series: {
-          pointPadding: 0.25,
-          borderWidth: 0,
-          color: '#0000FF',
-          targetOptions: {
-            width: '200%'
-          }
-        }
-      },
-      xAxis: {
-        categories: ['']
-      },
-      yAxis: {
-        gridLineWidth: 0,
-        min: 0.98,
-        max: 1.02,
-        plotBands: [{
-          from: 0,
-          to: 0.99,
-          color: '#CBCBCB'
-        }, {
-          from: 0.99,
-          to: 0.995,
-          color: '#FCDD6D'
-        }, {
-          from: 0.995,
-          to: 9e9,
-          color: '#49FF3E'
-        }],
-        labels: {
-          format: '{value}'
-        },
-        title: null
-      },
-      series: [{
-        data: [{
-          y: 0.05,
-          target: 0.05
-        }]
-      }],
-      tooltip: {
-        pointFormat: '<b>{point.y:.4f}</b> (max à {point.target:.4f})'
-      },
-      credits: {
-        enabled: false
-      },
-      exporting: {
-        enabled: false
+    // Etape 1 : remise à zéro des index, redémarrage du routeur, puis tension de calibrage
+    // envoyée une fois le routeur redémarré pour ne pas être perdue
+    $("start").addEventListener("click", (e) => {
+      MaxPV.run(e.target, async () => {
+        await MaxPV.action("resetindex");
+        await MaxPV.action("restart");
+        await wait(4000);
+        await MaxPV.setParam("v_calib", "0.800");
+        await fillParams();
+      }, "Routeur prêt, passez à l'étape 2").then(() => done("step1")).catch(() => {});
+    });
+
+    $("send-installpv").addEventListener("click", (e) => {
+      MaxPV.run(e.target, () => MaxPV.setParam("p_installpv", num("p_installpv")), "Puissance de l'installation transmise")
+        .then(() => done("step2")).catch(() => {});
+    });
+
+    // Etape 3 : puissance du chauffe-eau et gains de régulation associés
+    $("send-resistance").addEventListener("click", (e) => {
+      const resistance = num("p_resistance");
+      if (!(resistance > 0)) { MaxPV.toast("Indiquez la puissance du chauffe-eau", "bad"); return; }
+      MaxPV.run(e.target, async () => {
+        await MaxPV.setParam("p_resistance", resistance);
+        await MaxPV.setParam("gain_p", Math.trunc(5 * 3000.0 / resistance) + 1);
+        await MaxPV.setParam("gain_i", Math.trunc(30 * 3000.0 / resistance) + 1);
+        await MaxPV.setParam("e_reserve", "5");
+        await MaxPV.setParam("p_margin", "10");
+      }, "Chauffe-eau et gains de régulation transmis").then(() => done("step3")).catch(() => {});
+    });
+
+    // Etape 5 : facteur de calibrage proportionnel au rapport puissance lue / puissance mesurée
+    $("send-pcalib").addEventListener("click", (e) => {
+      if (!last || !(last.papp > 0)) { MaxPV.toast("Puissance apparente mesurée indisponible", "bad"); return; }
+      const pCalib = ecopvPCalib * num("papp_input") / last.papp;
+      MaxPV.run(e.target, () => MaxPV.setParam("p_calib", pCalib), "Calibrage de la puissance transmis")
+        .then(() => { ecopvPCalib = pCalib; done("step5"); }).catch(() => {});
+    });
+
+    // Etape 6 : la puissance mesurée sans courant devient le nouvel offset
+    $("send-offset").addEventListener("click", (e) => {
+      if (!last || !fmt.known(last.pact)) { MaxPV.toast("Puissance active mesurée indisponible", "bad"); return; }
+      const offset = ecopvPOffset + Number(last.pact);
+      MaxPV.run(e.target, () => MaxPV.setParam("p_offset", offset), "Correction de l'offset transmise")
+        .then(() => { ecopvPOffset = offset; done("step6"); }).catch(() => {});
+    });
+
+    // Etape 7 : envoi du réglage de phase quand le curseur s'arrête
+    let phaseTimer = null;
+    $("phase_calib").addEventListener("input", () => {
+      const value = $("phase_calib").value;
+      $("phase-value").textContent = value;
+      clearTimeout(phaseTimer);
+      phaseTimer = setTimeout(() => {
+        MaxPV.setParam("phase_calib", value).catch(() => MaxPV.toast("Réglage de phase non transmis", "bad"));
+      }, 300);
+    });
+
+    // Etape 8 : seuils du relais secondaire selon les puissances du chauffe-eau et de la charge secondaire
+    $("send-relay2").addEventListener("click", (e) => {
+      const resistance = num("p_resistance");
+      let secondary = num("psecondaire_input");
+      if (!(secondary > 0)) secondary = 500;   // on évite de configurer une charge nulle
+      let active, idle;
+      if (resistance > secondary) {
+        active = Math.trunc(secondary * 0.80);
+        idle = Math.trunc(secondary * 0.30);
+      }
+      else {
+        active = Math.trunc(resistance * 0.90);
+        idle = Math.trunc(secondary - resistance * 0.70);
+      }
+      MaxPV.run(e.target, async () => {
+        await MaxPV.setParam("t_div2_on", "5");
+        await MaxPV.setParam("t_div2_off", "5");
+        await MaxPV.setParam("t_div2_tc", "1");
+        await MaxPV.setParam("p_div2_active", active);
+        await MaxPV.setParam("p_div2_idle", idle);
+      }, "Relais secondaire configuré").then(() => done("step8")).catch(() => {});
+    });
+
+    $("send-cntcalib").addEventListener("click", (e) => {
+      MaxPV.run(e.target, () => MaxPV.setParam("cnt_calib", num("cnt_calib")), "Poids des impulsions transmis")
+        .then(() => done("step9")).catch(() => {});
+    });
+
+    $("save").addEventListener("click", (e) => {
+      MaxPV.run(e.target, async () => {
+        await MaxPV.action("saveparam");
+        await MaxPV.action("restart");
+        await wait(4000);
+        await fillParams();
+      }, "C'est terminé : MaxPV! est opérationnel").then(() => done("step10")).catch(() => {});
+    });
+
+    // Mesures en direct pour les étapes 4 à 7
+    const GAUGE_MIN = 0.98, GAUGE_MAX = 1.02;
+    const gaugePos = (v) => (Math.max(0, Math.min(1, (v - GAUGE_MIN) / (GAUGE_MAX - GAUGE_MIN))) * 100) + "%";
+
+    MaxPV.onStatus((status) => {
+      if (!status) return;
+      last = status;
+      $("vrms").textContent = fmt.number(status.vrms, 1);
+      $("papp").textContent = fmt.number(status.papp, 0, "VA");
+      $("pact").textContent = fmt.power(status.pact);
+      if (fmt.known(status.cosphi)) {
+        const cosphi = Math.abs(status.cosphi);
+        if (cosphi > cosphiMax) cosphiMax = cosphi;
+        $("cosphi").textContent = fmt.number(cosphi, 4);
+        $("cosphi-max").textContent = fmt.number(cosphiMax, 4);
+        $("gauge-value").style.left = gaugePos(cosphi);
+        $("gauge-max").style.left = gaugePos(cosphiMax);
       }
     });
 
-
-    function configRelay2(ele) {
-      var value_resistance = 1.0 * (document.getElementById('p_resistance').value);
-      var value_psecondaire_input = 1.0 * (document.getElementById('psecondaire_input').value);
-      var value_pactivation = 0.0;
-      var value_pidle = 0.0;
-      sendParamByValue('t_div2_on', '5');
-      sendParamByValue('t_div2_off', '5');
-      sendParamByValue('t_div2_tc', '1');
-
-      if (value_psecondaire_input == 0) value_psecondaire_input = 500;
-      // on évite de configurer une charge nulle
-      if (value_resistance > value_psecondaire_input) {
-        value_pactivation = Math.trunc(value_psecondaire_input * 0.80);
-        value_pidle = Math.trunc(value_psecondaire_input * 0.30);
-      }
-      else {
-        value_pactivation = Math.trunc(value_resistance * 0.90);
-        value_pidle = Math.trunc(value_psecondaire_input * 1.0 - value_resistance * 0.70);
-      }
-      sendParamByValue('p_div2_active', value_pactivation);
-      sendParamByValue('p_div2_idle', value_pidle);
-      ele.blur();
-    }
-
-    function correctionOffset(ele) {
-      var xhttp1 = new XMLHttpRequest();
-      xhttp1.onreadystatechange = function () {
-        if (this.readyState == 4 && this.status == 200) {
-          var config = this.responseText.split(",");
-          EcoPV_p_offset = (1.0 * EcoPV_p_offset + 1.0 * config[2]);
-          sendParamByValue('p_offset', EcoPV_p_offset);
-        }
-      };
-      xhttp1.open("GET", "api/get?alldata", true);
-      xhttp1.send();
-      ele.blur();
-    }
-
-    function calculPCalib(ele) {
-      var xhttp1 = new XMLHttpRequest();
-
-      xhttp1.onreadystatechange = function () {
-        if (this.readyState == 4 && this.status == 200) {
-          var config = this.responseText.split(",");
-          var value_papp_input = document.getElementById('papp_input').value;
-          var value_p_calib = (1.0 * EcoPV_p_calib * value_papp_input / config[3]);
-          sendParamByValue('p_calib', value_p_calib);
-          EcoPV_p_calib = value_p_calib;
-        }
-      };
-      xhttp1.open("GET", "api/get?alldata", true);
-      xhttp1.send();
-      ele.blur();
-    }
-
-    function calculGain() {
-      var value_resistance = 1.0 * (document.getElementById('p_resistance').value);
-      var value_gain_p = Math.trunc(5 * 3000.0 / value_resistance) + 1;
-      var value_gain_i = Math.trunc(30 * 3000.0 / value_resistance) + 1;
-      sendParamByValue('gain_p', value_gain_p)
-      sendParamByValue('gain_i', value_gain_i)
-      sendParamByValue('e_reserve', '5')
-      sendParamByValue('p_margin', '10')
-    }
-
-    function sendAction(action, ele) {
-      var xhttp = new XMLHttpRequest();
-      xhttp.open("GET", "api/action?" + action, true);
-      xhttp.send();
-      ele.blur();
-    }
-
-    function sendParam(param, ele) {
-      var xhttp = new XMLHttpRequest();
-      var args = "api/set?param=";
-      var num_param = paramList.indexOf(param);
-      var value_param = document.getElementById(param).value;
-      args += num_param;
-      args += "&value=";
-      args += value_param;
-      xhttp.open("GET", args, true);
-      xhttp.send();
-      ele.blur();
-    }
-
-    function sendParamByValue(param, value) {
-      var xhttp = new XMLHttpRequest();
-      var args = "api/set?param=";
-      var num_param = paramList.indexOf(param);
-      var value_param = value;
-      args += num_param;
-      args += "&value=";
-      args += value_param;
-      xhttp.open("GET", args, true);
-      xhttp.send();
-    }
-
-    function fillParam() {
-      var xhttp1 = new XMLHttpRequest();
-      xhttp1.onreadystatechange = function () {
-        if (this.readyState == 4 && this.status == 200) {
-          var config = this.responseText.split(",");
-          EcoPV_p_calib = 1.0 * config[1];
-          EcoPV_p_offset = 1.0 * config[3];
-          document.getElementById('phase_calib').value = config[2];
-          document.getElementById('p_resistance').value = config[4];
-          document.getElementById('p_installpv').value = config[15];
-          document.getElementById('cnt_calib').value = config[14];
-        }
-      };
-      xhttp1.open("GET", "api/get?allparam", true);
-      xhttp1.send();
-    }
-
-    setInterval(function () {
-      var xhttp1 = new XMLHttpRequest();
-
-      xhttp1.onreadystatechange = function () {
-        if (this.readyState == 4 && this.status == 200) {
-          var config = this.responseText.split(",");
-          var cosphiValue = Math.abs(config[7]);
-          document.getElementById("vrms").innerHTML = config[0];
-          document.getElementById("cosphi").innerHTML = cosphiValue;
-          if ( cosphiMax < cosphiValue ) cosphiMax = cosphiValue;
-          if ( bulletCosphi ) {
-            bulletCosphi.series[0].addPoint ( [0,cosphiValue,cosphiMax], true, true);
-          }
-        }
-      };
-      xhttp1.open("GET", "api/get?alldata", true);
-      xhttp1.send();
-
-    }, 1000);
-
+    fillParams();
 
   </script>
-
-  <script>
-    setTimeout(function () {
-      bootstrap.Alert.getOrCreateInstance(document.querySelector(".alert")).close();
-    }, 6000)
-  </script>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa" crossorigin="anonymous"></script>
-
 </body>
 
 </html>

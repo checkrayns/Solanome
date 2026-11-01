@@ -3,925 +3,205 @@
 
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=0.8">
-  <meta name="description" content="">
-  <meta name="author" content="Bernard Legrand">
-  <title>MaxPv! Graphiques</title>
-
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
-  
-  <style>
-    .highcharts-figure .chart-container {
-      width: 300px;
-      height: 200px;
-      float: left;
-      max-width: 300px;
-    }
-
-    .highcharts-figure,
-    .highcharts-data-table table {
-      max-width: 900px;
-      margin: 0 auto;
-    }
-
-    .highcharts-data-table table {
-      border-collapse: collapse;
-      border: 1px solid #ebebeb;
-      margin: 10px auto;
-      text-align: center;
-      width: 100%;
-      max-width: 900px;
-    }
-
-    .highcharts-data-table caption {
-      padding: 1em 0;
-      font-size: 1.2em;
-      color: #555;
-    }
-
-    .highcharts-data-table th {
-      font-weight: 600;
-      padding: 0.5em;
-    }
-
-    .highcharts-data-table td,
-    .highcharts-data-table th,
-    .highcharts-data-table caption {
-      padding: 0.5em;
-    }
-
-    .highcharts-data-table thead tr,
-    .highcharts-data-table tr:nth-child(even) {
-      background: #f8f8f8;
-    }
-
-    .highcharts-data-table tr:hover {
-      background: #f1f7ff;
-    }
-
-    @media (max-width: 600px) {
-
-      .highcharts-figure,
-      .highcharts-data-table table {
-        width: 100%;
-      }
-
-      .highcharts-figure .chart-container {
-        width: 300px;
-        float: none;
-        margin: 0 auto;
-      }
-    }
-  </style>
-
-  <link href="maxpv.css" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f3f5f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0e1317" media="(prefers-color-scheme: dark)">
+  <title>MaxPV! Graphiques</title>
+  <link rel="icon" href="favicon.ico">
+  <link href="app.css?v=__WEBVER__" rel="stylesheet">
 </head>
 
 <body>
 
-  <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="/">MaxPV!</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse"
-        aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarCollapse">
-        <ul class="navbar-nav me-auto mb-2 mb-md-0">
-          <li class="nav-item">
-            <a class="nav-link" href="index.html">Moniteur</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="graph.html">Graphiques</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="events.html">Journal</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="wizard.html">Assistant de configuration</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="configuration.html">Paramétrage avancé</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="admin.html">Administration</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="maj.html">Update</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="credits.html">Credits</a>
-          </li>
-        </ul>
-      </div>
-    </div>
-  </nav>
+  <main class="content">
 
-  <main class="container-fluid">
-    <div class="bg-light p-5 rounded">
-      <h1>Graphiques</h1>
-      <div class="accordion accordion-flush" id="accordionFlushExample">
-        <div class="accordion-item">
-          <h2 class="accordion-header" id="flush-headingOne">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-              data-bs-target="#flush-collapseOne" aria-expanded="false" aria-controls="flush-collapseOne">
-              <h6>Jauges</h6>
-            </button>
-          </h2>
-          <div id="flush-collapseOne" class="accordion-collapse collapse text-center" aria-labelledby="flush-headingOne"
-            data-bs-parent="#accordionFlushExample" style="">
-            <div class="accordion-body">
-              <figure class="figure rounded highcharts-figure">
-                <div id="container-vrms" class="chart-container"></div>
-                <div id="container-irms" class="chart-container"></div>
-                <div id="container-cosphi" class="chart-container"></div>
-                <div id="container-pact" class="chart-container"></div>
-                <div id="container-pimpulsion" class="chart-container"></div>
-                <div id="container-prouted" class="chart-container"></div>
-                <p class="highcharts-description"></p>
-              </figure>
-            </div>
-          </div>
-        </div>
-        <div class="accordion-item">
-          <h2 class="accordion-header" id="flush-headingTwo">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-              data-bs-target="#flush-collapseTwo" aria-expanded="false" aria-controls="flush-collapseTwo">
-              <h6>Courbes temps réel</h6>
-            </button>
-          </h2>
-          <div id="flush-collapseTwo" class="accordion-collapse collapse text-center" aria-labelledby="flush-headingTwo"
-            data-bs-parent="#accordionFlushExample" style="">
-            <div class="accordion-body">
-              <figure class="highcharts-figure">
-                <div id="container-puisstempsreel"></div><br><br>
-                <div id="container-vrmstempsreel"></div><br><br>
-                <div id="container-irmstempsreel"></div><br><br>
-                <div id="container-cosphitempsreel"></div><br><br>
-                <div id="container-trigstempsreel"></div><br>
-                <p class="highcharts-description"></p>
-              </figure>
-            </div>
-          </div>
-        </div>
-        <div class="accordion-item">
-          <h2 class="accordion-header" id="flush-headingThree">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-              data-bs-target="#flush-collapseThree" aria-expanded="false" aria-controls="flush-collapseThree">
-              <h6>Historique</h6>
-            </button>
-          </h2>
-          <div id="flush-collapseThree" class="accordion-collapse collapse text-center"
-            aria-labelledby="flush-headingThree" data-bs-parent="#accordionFlushExample">
-            <div class="accordion-body">
-              <figure class="highcharts-figure">
-                <div id="container-puisshistorique"></div><br><br>
-                <div id="container-relayhistorique"></div><br><br>
-                <p class="highcharts-description"></p>
-              </figure>
-            </div>
-          </div>
-        </div>
+    <header class="topbar">
+      <div>
+        <h1>Graphiques</h1>
+        <p class="sub" id="sub">Historique des 4 derniers jours</p>
       </div>
-      <br>
+    </header>
+
+    <div class="chips" role="group" aria-label="Type de graphiques" id="tabs">
+      <button type="button" data-tab="history" aria-pressed="true">Historique</button>
+      <button type="button" data-tab="live" aria-pressed="false">Temps réel</button>
     </div>
+
+    <section class="grid" id="history">
+      <article class="card span-2">
+        <div class="card-head">
+          <h2 class="card-title">Puissances</h2>
+          <a href="api/history?power" download="maxpv-puissances.csv">CSV</a>
+        </div>
+        <div id="chart-power-history"></div>
+        <p class="hint">Valeurs moyennées par intervalle de 30 minutes. L'historique repart à zéro au redémarrage de MaxPV!.</p>
+      </article>
+      <article class="card span-2">
+        <div class="card-head">
+          <h2 class="card-title">Relais secondaire</h2>
+          <a href="api/history?relay" download="maxpv-relais.csv">CSV</a>
+        </div>
+        <div id="chart-relay-history"></div>
+        <p class="hint">Part du temps passé relais en marche, par intervalle de 30 minutes.</p>
+      </article>
+    </section>
+
+    <section class="grid" id="live" hidden>
+      <article class="card span-2">
+        <h2 class="card-title">Bilan des puissances</h2>
+        <div id="chart-power-live"></div>
+      </article>
+      <article class="card">
+        <h2 class="card-title">Tension</h2>
+        <div id="chart-vrms-live"></div>
+      </article>
+      <article class="card">
+        <h2 class="card-title">Courant</h2>
+        <div id="chart-irms-live"></div>
+      </article>
+      <article class="card">
+        <h2 class="card-title">Facteur de puissance</h2>
+        <div id="chart-cosphi-live"></div>
+      </article>
+      <article class="card">
+        <h2 class="card-title">Délai de déclenchement du SSR</h2>
+        <div id="chart-trigs-live"></div>
+      </article>
+    </section>
 
   </main>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highcharts/11.4.8/highcharts.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highcharts/11.4.8/highcharts-more.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highcharts/11.4.8/modules/solid-gauge.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highcharts/11.4.8/modules/data.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highcharts/11.4.8/modules/exporting.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highcharts/11.4.8/modules/export-data.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highcharts/11.4.8/modules/accessibility.min.js"></script>
-
+  <script src="app.js?v=__WEBVER__"></script>
+  <script src="chart.js?v=__WEBVER__"></script>
   <script>
 
-    var urlPuissHistory = window.location.origin + '/api/history?power';
-    var urlRelayHistory = window.location.origin + '/api/history?relay';
+    const $ = (id) => document.getElementById(id);
+    const COLORS = { import: "var(--import)", export: "var(--info)", prod: "var(--accent)", routed: "var(--export)", neutral: "var(--muted)" };
 
-    Highcharts.chart('container-puisshistorique', {
-      chart: {
-       type: 'areaspline',
-       zoomType: 'x',
-       panning: true,
-       panKey: 'shift',     
-       resetZoomButton: {
-        position: {
-          x: -45,
-          y: -38
-        }
-       },
-       marginRight: 10
-      },
-      title: {
-        text: 'Historique des puissances'
-      },
-      accessibility: {
-        announceNewData: {
-          enabled: true,
-          minAnnounceInterval: 15000,
-          announcementFormatter: function (allSeries, newSeries, newPoint) {
-            if (newPoint) {
-              return 'New point added. Value: ' + newPoint.y;
-            }
-            return false;
-          }
-        }
-      },
-      xAxis: {
-        type: 'datetime',
-        tickPixelInterval: 150
-      },
-      legend: {
-        enabled: true
-      },
-      yAxis: {
-        title: {
-          text: 'Watts'
-        },
-        plotLines: [{
-          value: 0,
-          width: 1,
-          color: '#808080'
-        }]
-      },
-      data: {
-        csvURL: urlPuissHistory,
-        enablePolling: true,
-        dataRefreshRate: 60
-      },
+    // ---------- Historique ----------
+
+    const powerHistory = MaxPVChart.create($("chart-power-history"), {
+      label: "Historique des puissances", unit: "W", height: 260,
+      empty: "Pas encore d'historique : un point est enregistré toutes les 30 minutes",
       series: [
-        {
-          name: 'Import réseau',
-          color: '#E74C3C',
-          fillOpacity: 0
-        },
-        {
-          name: 'Export réseau',
-          color: '#800080',
-          fillOpacity: 0
-        },
-        {
-          name: 'Production PV',
-          color: '#F7DC6F',
-          fillOpacity: 0.1
-        },
-        {
-          name: 'Routage ECS',
-          color: '#1E8449',
-          fillOpacity: 0
-        }
-      ],
-      tooltip: {
-        headerFormat: '<b>{series.name}</b><br/>',
-        pointFormat: '{point.x:%H:%M:%S %d/%m/%Y}<br/>{point.y:.1f} W'
-      },
-      exporting: {
-        enabled: true
-      },
-      time: {
-        useUTC: false
-      },
-      caption: {
-        text: 'Les valeurs tracées sont moyennées par intervalle de 30 minutes.<br>Le graphique est mis à zéro au (re)démarrage de MaxPV!.<br>La résolution des données est de 10W.'
-      },
-      credits: {
-        enabled: false
-      }
+        { name: "Import", color: COLORS.import },
+        { name: "Export", color: COLORS.export },
+        { name: "Production", color: COLORS.prod, area: true },
+        { name: "Routage ECS", color: COLORS.routed }
+      ]
     });
 
-    Highcharts.chart('container-relayhistorique', {
-      chart: {
-        type: 'column',
-        marginRight: 10
-      },
-      title: {
-        text: 'Historique du relais secondaire'
-      },
-      accessibility: {
-        announceNewData: {
-          enabled: true,
-          minAnnounceInterval: 15000,
-          announcementFormatter: function (allSeries, newSeries, newPoint) {
-            if (newPoint) {
-              return 'New point added. Value: ' + newPoint.y;
-            }
-            return false;
-          }
-        }
-      },
-      xAxis: {
-        type: 'datetime',
-        tickPixelInterval: 150
-      },
-      legend: {
-        enabled: true
-      },
-      yAxis: {
-        title: {
-          text: '%',
-          min: 0,
-          max: 100
-        },
-        plotLines: [{
-          value: 0,
-          width: 1,
-          color: '#808080'
-        }]
-      },
-      plotOptions: {
-        series: {
-            borderWidth: 0,
-            dataLabels: {
-                enabled: true,
-                format: '{point.y:.1f}%'
-            }
-        }
-      },
-      data: {
-        csvURL: urlRelayHistory,
-        enablePolling: true,
-        dataRefreshRate: 60
-      },
-      series: [
-        {
-          name: 'Fonctionnement Relais',
-          color: '#E74C3C',
-          fillOpacity: 0
-        }
-      ],
-      tooltip: {
-        headerFormat: '<b>{series.name}</b><br/>',
-        pointFormat: '{point.x:%H:%M:%S %d/%m/%Y}<br/>{point.y:.1f} %'
-      },
-      exporting: {
-        enabled: true
-      },
-      time: {
-        useUTC: false
-      },
-      caption: {
-        text: 'La valeur correspond au % de temps passé en fonctionnement relais ON par intervalle de 30 minutes.<br>Le graphique est mis à zéro au (re)démarrage de MaxPV!.'
-      },
-      credits: {
-        enabled: false
-      }
+    const relayHistory = MaxPVChart.create($("chart-relay-history"), {
+      label: "Historique du relais secondaire", type: "bar", unit: "%", digits: 1, height: 180, max: 100,
+      empty: "Pas encore d'historique",
+      series: [{ name: "Relais en marche", color: COLORS.import }]
     });
 
- 
-    var dataInitChartTempsReel = function () {
-      // Initialisation des graphes temps réel
-      // Le nombre de points fixe la durée des graphs en secondes
-      var data = [],
-        time = (new Date()).getTime(),
-        i;
+    // CSV de /api/history : première colonne en millisecondes, puis une colonne par série
+    function parseCsv(text, count) {
+      const times = [], values = Array.from({ length: count }, () => []);
+      text.trim().split(/\r?\n/).slice(1).forEach((line) => {
+        const cells = line.split(",");
+        if (cells.length < count + 1) return;
+        times.push(Number(cells[0]));
+        for (let k = 0; k < count; k++) values[k].push(Number(cells[k + 1]));
+      });
+      return [times, values];
+    }
 
-      for (i = -119; i <= 0; i += 1) {
-        data.push({
-          x: time + i * 1000,
-          //y: 0.0
-        });
+    async function loadHistory() {
+      try {
+        powerHistory.setData(...parseCsv(await MaxPV.getText("api/history?power"), 4));
+        relayHistory.setData(...parseCsv(await MaxPV.getText("api/history?relay"), 1));
       }
-      return data;
-    }();
+      catch (e) { MaxPV.toast("Historique inaccessible", "bad"); }
+    }
 
-    var chartOptions = {
-      chart: {
-        type: 'spline',
-        animation: Highcharts.svg, // don't animate in old IE
-        marginRight: 10,
-      },
-      time: {
-        useUTC: false
-      },
-      credits: {
-        enabled: false
-      },
-      accessibility: {
-        announceNewData: {
-          enabled: true,
-          minAnnounceInterval: 15000,
-          announcementFormatter: function (allSeries, newSeries, newPoint) {
-            if (newPoint) {
-              return 'New point added. Value: ' + newPoint.y;
-            }
-            return false;
-          }
-        }
-      },
-      xAxis: {
-        type: 'datetime',
-        tickPixelInterval: 150
-      },
-      legend: {
-        enabled: true
-      },
-      exporting: {
-        enabled: false
-      }
+    // ---------- Temps réel ----------
+
+    const LIVE_POINTS = 120;   // 4 minutes à raison d'un point toutes les 2 secondes
+    const live = { times: [], power: [[], [], []], vrms: [[]], irms: [[]], cosphi: [[]], trigs: [[], [], []] };
+
+    const liveCharts = {
+      power: MaxPVChart.create($("chart-power-live"), {
+        label: "Bilan des puissances", unit: "W", seconds: true, height: 240,
+        series: [
+          { name: "Réseau", color: COLORS.import },
+          { name: "Production", color: COLORS.prod, area: true },
+          { name: "Routage ECS", color: COLORS.routed }
+        ]
+      }),
+      vrms: MaxPVChart.create($("chart-vrms-live"), {
+        label: "Tension", unit: "V", digits: 1, zero: false, seconds: true, height: 180,
+        series: [{ name: "Tension", color: COLORS.import }]
+      }),
+      irms: MaxPVChart.create($("chart-irms-live"), {
+        label: "Courant", unit: "A", digits: 2, seconds: true, height: 180,
+        series: [{ name: "Courant", color: COLORS.import }]
+      }),
+      cosphi: MaxPVChart.create($("chart-cosphi-live"), {
+        label: "Facteur de puissance", digits: 3, zero: false, seconds: true, height: 180,
+        series: [{ name: "Facteur de puissance", color: COLORS.neutral }]
+      }),
+      trigs: MaxPVChart.create($("chart-trigs-live"), {
+        label: "Délai de déclenchement du SSR", unit: "ms", digits: 2, seconds: true, height: 180,
+        series: [
+          { name: "Min", color: COLORS.export },
+          { name: "Moy", color: COLORS.routed },
+          { name: "Max", color: COLORS.import }
+        ]
+      })
     };
 
-    var chartTempsReelPuiss = Highcharts.chart('container-puisstempsreel', Highcharts.merge(chartOptions, {
-      title: {
-        text: 'Bilan des puissances'
-      },
-      yAxis: {
-        //min: 0,
-        title: {
-          text: 'Watts'
-        },
-        plotLines: [{
-          value: 0,
-          width: 1,
-          color: '#808080'
-        }]
-      },
-      tooltip: {
-        headerFormat: '<b>{series.name}</b><br/>',
-        pointFormat: '{point.x:%H:%M:%S}<br/>{point.y:.1f} W'
-      },
-      series: [
-        {
-          name: 'Réseau',
-          data: dataInitChartTempsReel,
-          color: '#E74C3C'
-        },
-        {
-          name: 'Production PV',
-          data: dataInitChartTempsReel,
-          color: '#F7DC6F'
-        },
-        {
-          name: 'Routage ECS',
-          data: dataInitChartTempsReel,
-          color: '#1E8449'
-        }
-      ]
-    }));
+    function push(list, value) {
+      list.push(value === null || value === undefined ? null : Number(value));
+      if (list.length > LIVE_POINTS) list.shift();
+    }
 
-    var chartTempsReelVrms = Highcharts.chart('container-vrmstempsreel', Highcharts.merge(chartOptions, {
-      title: {
-        text: 'Tension réseau'
-      },
-      yAxis: {
-        //min: 0,
-        title: {
-          text: 'Volts'
-        },
-        plotLines: [{
-          value: 0,
-          width: 1,
-          color: '#808080'
-        }]
-      },
-      tooltip: {
-        headerFormat: '<b>{series.name}</b><br/>',
-        pointFormat: '{point.x:%H:%M:%S}<br/>{point.y:.1f} V'
-      },
-      series: [
-        {
-          name: 'Tension',
-          color: '#E74C3C',
-          data: dataInitChartTempsReel
-        }
-      ]
-    }));
+    function renderLive() {
+      liveCharts.power.setData(live.times, live.power);
+      liveCharts.vrms.setData(live.times, live.vrms);
+      liveCharts.irms.setData(live.times, live.irms);
+      liveCharts.cosphi.setData(live.times, live.cosphi);
+      liveCharts.trigs.setData(live.times, live.trigs);
+    }
 
-    var chartTempsReelIrms = Highcharts.chart('container-irmstempsreel', Highcharts.merge(chartOptions, {
-      title: {
-        text: 'Courant'
-      },
-      yAxis: {
-        //min: 0,
-        title: {
-          text: 'Ampères'
-        },
-        plotLines: [{
-          value: 0,
-          width: 1,
-          color: '#808080'
-        }]
-      },
-      tooltip: {
-        headerFormat: '<b>{series.name}</b><br/>',
-        pointFormat: '{point.x:%H:%M:%S}<br/>{point.y:.2f} A'
-      },
-      series: [
-        {
-          name: 'Courant',
-          color: '#E74C3C',
-          data: dataInitChartTempsReel
-        }
-      ]
-    }));
+    // Les mesures sont collectées en permanence, les courbes ne sont redessinées que si l'onglet est affiché
+    MaxPV.onStatus((s) => {
+      if (!s) return;
+      const t = Date.now();
+      if (live.times.length && t - live.times[live.times.length - 1] < 1000) return;
+      push(live.times, t);
+      push(live.power[0], s.pact);
+      push(live.power[1], s.pprod);
+      push(live.power[2], s.prouted);
+      push(live.vrms[0], s.vrms);
+      push(live.irms[0], s.irms);
+      push(live.cosphi[0], s.cosphi);
+      push(live.trigs[0], s.dmin);
+      push(live.trigs[1], s.davg);
+      push(live.trigs[2], s.dmax);
+      if (!$("live").hidden) renderLive();
+    });
 
-    var chartTempsReelCosPhi = Highcharts.chart('container-cosphitempsreel', Highcharts.merge(chartOptions, {
-      title: {
-        text: 'Facteur de puissance'
-      },
-      yAxis: {
-        //min: 0,
-        title: {
-          text: 'FP'
-        },
-        plotLines: [{
-          value: 0,
-          width: 1,
-          color: '#808080'
-        }]
-      },
-      tooltip: {
-        headerFormat: '<b>{series.name}</b><br/>',
-        pointFormat: '{point.x:%H:%M:%S}<br/>{point.y:.3f}'
-      },
-      series: [
-        {
-          name: 'Facteur de puissance',
-          color: '#818181',
-          data: dataInitChartTempsReel
-        }
-      ]
-    }));
+    // ---------- Onglets ----------
 
-    var chartTempsReelTrigs = Highcharts.chart('container-trigstempsreel', Highcharts.merge(chartOptions, {
-      title: {
-        text: 'Délai déclenchement SSR'
-      },
-      yAxis: {
-        //min: 0,
-        title: {
-          text: 'ms'
-        },
-        plotLines: [{
-          value: 0,
-          width: 1,
-          color: '#808080'
-        }]
-      },
-      tooltip: {
-        headerFormat: '<b>{series.name}</b><br/>',
-        pointFormat: '{point.x:%H:%M:%S}<br/>{point.y:.2f} ms'
-      },
-      series: [
-        {
-          name: 'délai min',
-          data: dataInitChartTempsReel,
-          color: '#0088FF'
-        },
-        {
-          name: 'délai moy',
-          data: dataInitChartTempsReel,
-          color: '#1E8449'
-        },
-        {
-          name: 'délai max',
-          data: dataInitChartTempsReel,
-          color: '#E74C3C'
-        }
-      ]
-    }));
+    $("tabs").addEventListener("click", (e) => {
+      const button = e.target.closest("button[data-tab]");
+      if (!button) return;
+      const tab = button.dataset.tab;
+      document.querySelectorAll("#tabs button").forEach((b) => b.setAttribute("aria-pressed", String(b === button)));
+      $("history").hidden = tab !== "history";
+      $("live").hidden = tab !== "live";
+      $("sub").textContent = tab === "live" ? "Mesures des 4 dernières minutes" : "Historique des 4 derniers jours";
+      if (tab === "live") renderLive();
+      else { powerHistory.render(); relayHistory.render(); }
+    });
 
-
-    var gaugeOptions = {
-      chart: {
-        type: 'solidgauge'
-      },
-
-      title: null,
-
-      pane: {
-        center: ['50%', '85%'],
-        size: '140%',
-        startAngle: -90,
-        endAngle: 90,
-        background: {
-          backgroundColor:
-            Highcharts.defaultOptions.legend.backgroundColor || '#EEE',
-          innerRadius: '60%',
-          outerRadius: '100%',
-          shape: 'arc'
-        }
-      },
-
-      exporting: {
-        enabled: false
-      },
-
-      tooltip: {
-        enabled: false
-      },
-
-      // the value axis
-      yAxis: {
-        stops: [
-          [0.35, '#55BF3B'], // green
-          [0.65, '#DDDF0D'], // yellow
-          [0.80, '#DF5353'] // red
-        ],
-        lineWidth: 0,
-        tickWidth: 0,
-        minorTickInterval: null,
-        tickAmount: 2,
-        title: {
-          y: -70
-        },
-        labels: {
-          y: 16
-        }
-      },
-
-      plotOptions: {
-        solidgauge: {
-          dataLabels: {
-            y: 5,
-            borderWidth: 0,
-            useHTML: true
-          }
-        }
-      }
-    };
-
-    var chartVrms = Highcharts.chart('container-vrms', Highcharts.merge(gaugeOptions, {
-      yAxis: {
-        min: 180,
-        max: 270,
-        title: {
-          text: 'Tension secteur (V)'
-        }
-      },
-
-      credits: {
-        enabled: false
-      },
-
-      series: [{
-        name: 'Tension secteur (V)',
-        data: [0],
-        dataLabels: {
-          format:
-            '<div style="text-align:center">' +
-            '<span style="font-size:25px">{y:.1f}</span><br/>' +
-            '<span style="font-size:12px;opacity:0.4">Volts</span>' +
-            '</div>'
-        },
-        tooltip: {
-          valueSuffix: ' V'
-        }
-      }]
-
-    }));
-
-    var chartIrms = Highcharts.chart('container-irms', Highcharts.merge(gaugeOptions, {
-      yAxis: {
-        min: 0,
-        max: 60,
-        title: {
-          text: 'Courant (A)'
-        }
-      },
-
-      credits: {
-        enabled: false
-      },
-
-      series: [{
-        name: 'Courant (A)',
-        data: [0],
-        dataLabels: {
-          format:
-            '<div style="text-align:center">' +
-            '<span style="font-size:25px">{y:.1f}</span><br/>' +
-            '<span style="font-size:12px;opacity:0.4">Ampères</span>' +
-            '</div>'
-        },
-        tooltip: {
-          valueSuffix: ' A'
-        }
-      }]
-
-    }));
-
-    var chartCosphi = Highcharts.chart('container-cosphi', Highcharts.merge(gaugeOptions, {
-      yAxis: {
-        min: 0,
-        max: 1,
-        title: {
-          text: 'Facteur de puissance'
-        }
-      },
-
-      credits: {
-        enabled: false
-      },
-
-      series: [{
-        name: 'Facteur de puissance',
-        data: [0],
-        dataLabels: {
-          format:
-            '<div style="text-align:center">' +
-            '<span style="font-size:25px">{y:.3f}</span><br/>' +
-            '<span style="font-size:12px;opacity:0.4"></span>' +
-            '</div>'
-        },
-        tooltip: {
-          valueSuffix: ' '
-        }
-      }]
-
-    }));
-
-    var chartPact = Highcharts.chart('container-pact', Highcharts.merge(gaugeOptions, {
-      yAxis: {
-        min: 0,
-        max: 12000,
-        title: {
-          text: 'Puissance active (W)'
-        }
-      },
-
-      credits: {
-        enabled: false
-      },
-
-      series: [{
-        name: 'Puissance active (W)',
-        data: [0],
-        dataLabels: {
-          format:
-            '<div style="text-align:center">' +
-            '<span style="font-size:25px">{y:.1f}</span><br/>' +
-            '<span style="font-size:12px;opacity:0.4">Watts</span>' +
-            '</div>'
-        },
-        tooltip: {
-          valueSuffix: ' W'
-        }
-      }]
-
-    }));
-
-    var chartPimpulsion = Highcharts.chart('container-pimpulsion', Highcharts.merge(gaugeOptions, {
-      yAxis: {
-        min: 0,
-        max: 12000,
-        title: {
-          text: 'Puissance PV (W)'
-        }
-      },
-
-      credits: {
-        enabled: false
-      },
-
-      series: [{
-        name: 'Puissance PV (W)',
-        data: [0],
-        dataLabels: {
-          format:
-            '<div style="text-align:center">' +
-            '<span style="font-size:25px">{y:.1f}</span><br/>' +
-            '<span style="font-size:12px;opacity:0.4">Watts</span>' +
-            '</div>'
-        },
-        tooltip: {
-          valueSuffix: ' W'
-        }
-      }]
-
-    }));
-
-    var chartProuted = Highcharts.chart('container-prouted', Highcharts.merge(gaugeOptions, {
-      yAxis: {
-        min: 0,
-        max: 6000,
-        title: {
-          text: 'Puissance routée (W)'
-        }
-      },
-
-      credits: {
-        enabled: false
-      },
-
-      series: [{
-        name: 'Puissance routée (W)',
-        data: [0],
-        dataLabels: {
-          format:
-            '<div style="text-align:center">' +
-            '<span style="font-size:25px">{y:.1f}</span><br/>' +
-            '<span style="font-size:12px;opacity:0.4">' +
-            'Watts' +
-            '</span>' +
-            '</div>'
-        },
-        tooltip: {
-          valueSuffix: ' W'
-        }
-      }]
-
-    }));
-
-
-    setInterval(function () {
-      var xhttp1 = new XMLHttpRequest();
-
-      xhttp1.onreadystatechange = function () {
-        var config;
-        var point;
-        var x,y;
-        var series;
-
-        if (this.readyState == 4 && this.status == 200) {
-          config = this.responseText.split(",");
-          x = (new Date()).getTime();
-
-          if (chartVrms) {
-            point = chartVrms.series[0].points[0];
-            point.update(parseFloat(config[0]));
-          }
-
-          if (chartIrms) {
-            point = chartIrms.series[0].points[0];
-            point.update(parseFloat(config[1]));
-          }
-
-          if (chartCosphi) {
-            point = chartCosphi.series[0].points[0];
-            point.update(Math.abs(parseFloat(config[7])));
-          }
-
-          if (chartPact) {
-            point = chartPact.series[0].points[0];
-            point.update(parseFloat(config[2]));
-          }
-
-          if (chartPimpulsion) {
-            point = chartPimpulsion.series[0].points[0];
-            point.update(parseFloat(config[12]));
-          }
-
-          if (chartProuted) {
-            point = chartProuted.series[0].points[0];
-            point.update(parseFloat(config[4]));
-          }
-
-          if (chartTempsReelPuiss) {
-            series = chartTempsReelPuiss.series[0];
-            y = parseFloat(config[2]);
-            series.addPoint([x, y], true, true);
-            series = chartTempsReelPuiss.series[2];
-            y = parseFloat(config[4]);
-            series.addPoint([x, y], true, true);
-            series = chartTempsReelPuiss.series[1];
-            y = parseFloat(config[12]);
-            series.addPoint([x, y], true, true);
-          }
-
-          if (chartTempsReelVrms) {
-            series = chartTempsReelVrms.series[0];
-            y = parseFloat(config[0]);
-            series.addPoint([x, y], true, true);
-          }
-
-          if (chartTempsReelIrms) {
-            series = chartTempsReelIrms.series[0];
-            y = parseFloat(config[1]);
-            series.addPoint([x, y], true, true);
-          }
-
-          if (chartTempsReelCosPhi) {
-            series = chartTempsReelCosPhi.series[0];
-            y = parseFloat(config[7]);
-            series.addPoint([x, y], true, true);
-          }
-
-          if (chartTempsReelTrigs) {
-            series = chartTempsReelTrigs.series[0];
-            y = parseFloat(config[15]);
-            series.addPoint([x, y], true, true);
-            series = chartTempsReelTrigs.series[1];
-            y = parseFloat(config[16]);
-            series.addPoint([x, y], true, true);
-            series = chartTempsReelTrigs.series[2];
-            y = parseFloat(config[17]);
-            series.addPoint([x, y], true, true);
-          }
-        }
-      };
-
-      xhttp1.open("GET", "api/get?alldata", true);
-      xhttp1.send();
-
-    }, 1000);
+    loadHistory();
+    setInterval(loadHistory, 5 * 60 * 1000);
 
   </script>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa" crossorigin="anonymous"></script>
-
 </body>
 
 </html>

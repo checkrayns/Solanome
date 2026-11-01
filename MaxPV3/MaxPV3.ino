@@ -2621,6 +2621,17 @@ void jsonNumber (String& json, const __FlashStringHelper* key, const String& val
 }
 
 
+// Ajoute une valeur texte transmise par EcoPV (octet d'état en binaire, durée j:hh:mm:ss)
+void jsonString (String& json, const __FlashStringHelper* key, const String& value)
+{
+  json += '"';
+  json += key;
+  json += F("\":\"");
+  json += value;
+  json += F("\",");
+}
+
+
 // Ajoute une énergie journalière en kWh : index courant - index de début de journée
 void jsonDayEnergy (String& json, const __FlashStringHelper* key, int indexNow, int indexDay)
 {
@@ -2637,7 +2648,7 @@ void jsonDayEnergy (String& json, const __FlashStringHelper* key, int indexNow, 
 String statusJson (void)
 {
   String json;
-  json.reserve(900);
+  json.reserve(1300);
   time_t timestamp = time(NULL);
 
   json = F("{\"time\":");
@@ -2668,6 +2679,23 @@ String statusJson (void)
   // EcoPV transmet -99 en l'absence de sonde ou si la température est invalide
   jsonNumber ( json, F("temp"),     ( ecoPVStats[TEMP_ECS].toInt() == -99 ) ? String() : ecoPVStats[TEMP_ECS] );
   jsonNumber ( json, F("presistance"), ecoPVConfig[P_RESISTANCE] );
+  // Diagnostic du routeur : délais de déclenchement du SSR (N/A hors régulation), point milieu, échantillonnage
+  jsonNumber ( json, F("dmin"),     ecoPVStats[DELAY_MIN] );
+  jsonNumber ( json, F("davg"),     ecoPVStats[DELAY_AVG] );
+  jsonNumber ( json, F("dmax"),     ecoPVStats[DELAY_MAX] );
+  jsonNumber ( json, F("vbias"),    ecoPVStats[BIAS_OFFSET] );
+  jsonNumber ( json, F("samples"),  ecoPVStats[SAMPLES] );
+  jsonString ( json, F("statusbyte"), ecoPVStats[STATUS_BYTE] );
+  jsonString ( json, F("ecopvuptime"), ecoPVStats[ONTIME] );
+
+  json += F("\"index\":{");
+  jsonNumber ( json, F("routed"),   ecoPVStats[INDEX_ROUTED] );
+  jsonNumber ( json, F("import"),   ecoPVStats[INDEX_IMPORT] );
+  jsonNumber ( json, F("export"),   ecoPVStats[INDEX_EXPORT] );
+  jsonNumber ( json, F("prod"),     ecoPVStats[INDEX_IMPULSION] );
+  json += F("\"relay\":");
+  json += ( ecoPVStats[INDEX_RELAY].length() > 0 ) ? ecoPVStats[INDEX_RELAY] : String ( F("null") );
+  json += F("},");
 
   json += F("\"day\":{");
   jsonDayEnergy ( json, F("routed"),  INDEX_ROUTED,    INDEX_ROUTED_J );

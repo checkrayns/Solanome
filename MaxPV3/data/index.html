@@ -3,358 +3,160 @@
 
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=0.8">
-  <meta name="description" content="">
-  <meta name="author" content="Bernard Legrand">
-  <title>MaxPv! Moniteur</title>
-
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
-
-  <link href="maxpv.css" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f3f5f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0e1317" media="(prefers-color-scheme: dark)">
+  <title>MaxPV! Moniteur détaillé</title>
+  <link rel="icon" href="favicon.ico">
+  <link href="app.css?v=__WEBVER__" rel="stylesheet">
 </head>
 
 <body>
 
-  <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="/">MaxPV!</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse"
-        aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarCollapse">
-        <ul class="navbar-nav me-auto mb-2 mb-md-0">
-          <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="index.html">Moniteur</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="graph.html">Graphiques</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="events.html">Journal</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="wizard.html">Assistant de configuration</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="configuration.html">Paramétrage avancé</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="admin.html">Administration</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="maj.html">Update</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="credits.html">Credits</a>
-          </li>
-        </ul>
+  <main class="content">
+
+    <header class="topbar">
+      <div>
+        <h1>Moniteur détaillé</h1>
+        <p class="sub" id="clock">&nbsp;</p>
       </div>
-    </div>
-  </nav>
+      <span class="pill" id="link" role="status">Connexion…</span>
+    </header>
 
-  <main class="container-fluid">
-    <div class="bg-light p-5 rounded">
-      <h1>Moniteur</h1>
-      <table class="table text-center align-middle">
-        <tbody>
-          <tr>
-            <td scope="col">
-                <button class="btn btn-warning col-12" id="booststate" type="submit" disabled onclick="this.blur()">Boost ---</button>
-            </td>
-            <td scope="col">
-                <button class="btn btn-warning col-12" id="ssrstate" type="submit" disabled onclick="this.blur()">SSR ---</button>
-            </td>
-            <td scope="col">
-                <button class="btn btn-warning col-12" id="relaystate" type="submit" disabled onclick="this.blur()">Relais ---</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>    
-<p class="lead">
-      </p>
-      <table class="table table-hover">
-        <thead>
-          <tr class="table-primary">
-            <th scope="col">Paramètres</th>
-            <th scope="col" class="text-center">Valeur</th>
-            <th scope="col" class="text-center">Unité</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <th scope="row">Tension</th>
-            <td class="text-center"><span id="vrms">-----</span></td>
-            <td class="text-center">V</td>
-          </tr>
-          <tr>
-            <th scope="row">Courant</th>
-            <td class="text-center"><span id="irms">-----</span></td>
-            <td class="text-center">A</td>
-          </tr>
-          <tr>
-            <th scope="row">Facteur de puiss.</th>
-            <td class="text-center"><span id="cosphi">-----</span></td>
-            <td class="text-center"></td>
-          </tr>
-          <tr>
-            <th scope="row">Puiss. apparente</th>
-            <td class="text-center"><span id="papp">-----</span></td>
-            <td class="text-center">VA</td>
-          </tr>
-          <tr>
-            <th scope="row">Puiss. active</th>
-            <td class="text-center"><span id="pact">-----</span></td>
-            <td class="text-center">W</td>
-          </tr>
-          <tr>
-            <th scope="row">Puiss. routée</th>
-            <td class="text-center"><span id="prouted">-----</span></td>
-            <td class="text-center">W</td>
-          </tr>
-          <tr>
-            <th scope="row">Puiss. produite</th>
-            <td class="text-center"><span id="pimpulsion">-----</span></td>
-            <td class="text-center">W</td>
-          </tr>
-          <tr>
-            <th scope="row">Température ECS</th>
-            <td class="text-center"><span id="temperature">-----</span></td>
-            <td class="text-center">°C</td>
-          </tr>
-        </tbody>
+    <section class="grid">
 
-        <thead>
-          <tr class="table-primary">
-            <th scope="col">Index journaliers</th>
-            <th scope="col" class="text-center"></th>
-            <th scope="col" class="text-center"></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <th scope="row">Energie importée</th>
-            <td class="text-center"><span id="indeximportJ">-----</span></td>
-            <td class="text-center">kWh</td>
-          </tr>
-          <tr>
-            <th scope="row">Energie exportée</th>
-            <td class="text-center"><span id="indexexportJ">-----</span></td>
-            <td class="text-center">kWh</td>
-          </tr>
-          <tr>
-            <th scope="row">Energie routée</th>
-            <td class="text-center"><span id="indexroutedJ">-----</span></td>
-            <td class="text-center">kWh</td>
-          </tr>
-          <tr>
-            <th scope="row">Energie produite</th>
-            <td class="text-center"><span id="indeximpulsionJ">-----</span></td>
-            <td class="text-center">kWh</td>
-          </tr>
-          <tr>
-            <th scope="row">Durée relais On</th>
-            <td class="text-center"><span id="indexrelayJ">-----</span></td>
-            <td class="text-center">min.</td>
-          </tr>
-        </tbody>
+      <article class="card">
+        <h2 class="card-title">Etats</h2>
+        <ul class="list">
+          <li><span class="label">Boost</span><span class="value" id="boost">—</span></li>
+          <li><span class="label">SSR</span><span class="value" id="ssr">—</span></li>
+          <li><span class="label">Relais secondaire</span><span class="value" id="relay">—</span></li>
+          <li><span class="label">RelayPlus</span><span class="value" id="relayplus">—</span></li>
+        </ul>
+      </article>
 
-        <thead>
-          <tr class="table-primary">
-            <th scope="col">Index totaux</th>
-            <th scope="col" class="text-center"></th>
-            <th scope="col" class="text-center"></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <th scope="row">Energie importée</th>
-            <td class="text-center"><span id="indeximport">-----</span></td>
-            <td class="text-center">kWh</td>
-          </tr>
-          <tr>
-            <th scope="row">Energie exportée</th>
-            <td class="text-center"><span id="indexexport">-----</span></td>
-            <td class="text-center">kWh</td>
-          </tr>
-          <tr>
-            <th scope="row">Energie routée</th>
-            <td class="text-center"><span id="indexrouted">-----</span></td>
-            <td class="text-center">kWh</td>
-          </tr>
-          <tr>
-            <th scope="row">Energie produite</th>
-            <td class="text-center"><span id="indeximpulsion">-----</span></td>
-            <td class="text-center">kWh</td>
-          </tr>
-          <tr>
-            <th scope="row">Durée relais On</th>
-            <td class="text-center"><span id="indexrelay">-----</span></td>
-            <td class="text-center">min.</td>
-          </tr>
-        </tbody>
+      <article class="card">
+        <h2 class="card-title">Mesures</h2>
+        <ul class="list">
+          <li><span class="label">Tension</span><span class="value" id="vrms">—</span></li>
+          <li><span class="label">Courant</span><span class="value" id="irms">—</span></li>
+          <li><span class="label">Facteur de puissance</span><span class="value" id="cosphi">—</span></li>
+          <li><span class="label">Puissance apparente</span><span class="value" id="papp">—</span></li>
+          <li><span class="label">Puissance active</span><span class="value" id="pact">—</span></li>
+          <li><span class="label">Puissance routée</span><span class="value" id="prouted">—</span></li>
+          <li><span class="label">Puissance produite</span><span class="value" id="pprod">—</span></li>
+          <li><span class="label">Température ECS</span><span class="value" id="temp">—</span></li>
+        </ul>
+      </article>
 
-        <thead>
-          <tr class="table-primary">
-            <th scope="col">Autres informations</th>
-            <th scope="col" class="text-center"></th>
-            <th scope="col" class="text-center"></th>
-          </tr>
-        </thead>
+      <article class="card">
+        <h2 class="card-title">Index du jour</h2>
+        <ul class="list">
+          <li><span class="label">Energie importée</span><span class="value" id="day-import">—</span></li>
+          <li><span class="label">Energie exportée</span><span class="value" id="day-export">—</span></li>
+          <li><span class="label">Energie routée</span><span class="value" id="day-routed">—</span></li>
+          <li><span class="label">Energie produite</span><span class="value" id="day-prod">—</span></li>
+          <li><span class="label">Durée relais en marche</span><span class="value" id="day-relay">—</span></li>
+        </ul>
+      </article>
 
-        <tbody>
-          <tr>
-            <th scope="row">Heure</th>
-            <td class="text-center"><span id="time">-----</span></td>
-            <td class="text-center">H:M:S</td>
-          </tr>
-          <tr>
-            <th scope="row">Up time</th>
-            <td class="text-center"><span id="ontime">-----</span></td>
-            <td class="text-center">D:H:M:S</td>
-          </tr>
-          <tr>
-            <th scope="row">Point milieu</th>
-            <td class="text-center"><span id="vbias">-----</span></td>
-            <td class="text-center">V</td>
-          </tr>
-          <tr>
-            <th scope="row">Trig minimal SSR</th>
-            <td class="text-center"><span id="dmin">-----</span></td>
-            <td class="text-center">ms</td>
-          </tr>
-          <tr>
-            <th scope="row">Trig moyen SSR</th>
-            <td class="text-center"><span id="davg">-----</span></td>
-            <td class="text-center">ms</td>
-          </tr>
-          <tr>
-            <th scope="row">Trig maximal SSR</th>
-            <td class="text-center"><span id="dmax">-----</span></td>
-            <td class="text-center">ms</td>
-          </tr>
-          <tr>
-            <th scope="row">Status byte</th>
-            <td class="text-center"><span id="status">-----</span></td>
-            <td class="text-center"></td>
-          </tr>
-          <tr>
-            <th scope="row">Echantillonage</th>
-            <td class="text-center"><span id="sample">-----</span></td>
-            <td class="text-center">Sa/s</td>
-          </tr>
-        </tbody>
-      </table>
-      <br>
-    </div>
+      <article class="card">
+        <h2 class="card-title">Index totaux</h2>
+        <ul class="list">
+          <li><span class="label">Energie importée</span><span class="value" id="index-import">—</span></li>
+          <li><span class="label">Energie exportée</span><span class="value" id="index-export">—</span></li>
+          <li><span class="label">Energie routée</span><span class="value" id="index-routed">—</span></li>
+          <li><span class="label">Energie produite</span><span class="value" id="index-prod">—</span></li>
+          <li><span class="label">Durée relais en marche</span><span class="value" id="index-relay">—</span></li>
+        </ul>
+      </article>
+
+      <article class="card">
+        <h2 class="card-title">Routeur EcoPV</h2>
+        <ul class="list">
+          <li><span class="label">En marche depuis</span><span class="value" id="ecopvuptime">—</span></li>
+          <li><span class="label">Point milieu</span><span class="value" id="vbias">—</span></li>
+          <li><span class="label">Déclenchement SSR min.</span><span class="value" id="dmin">—</span></li>
+          <li><span class="label">Déclenchement SSR moyen</span><span class="value" id="davg">—</span></li>
+          <li><span class="label">Déclenchement SSR max.</span><span class="value" id="dmax">—</span></li>
+          <li><span class="label">Octet d'état</span><span class="value" id="statusbyte">—</span></li>
+          <li><span class="label">Echantillonnage</span><span class="value" id="samples">—</span></li>
+        </ul>
+      </article>
+
+      <article class="card">
+        <h2 class="card-title">MaxPV!</h2>
+        <ul class="list">
+          <li><span class="label">En marche depuis</span><span class="value" id="uptime">—</span></li>
+          <li><span class="label">Signal Wifi</span><span class="value" id="rssi">—</span></li>
+          <li><span class="label">MQTT</span><span class="value" id="mqtt">—</span></li>
+          <li><span class="label">Versions</span><span class="value" id="versions">—</span></li>
+        </ul>
+      </article>
+
+    </section>
 
   </main>
 
+  <script src="app.js?v=__WEBVER__"></script>
   <script>
 
-    setInterval(function () {
-      var xhttp1 = new XMLHttpRequest();
-      var xhttp2 = new XMLHttpRequest();
-      var xhttp3 = new XMLHttpRequest();
-      var xhttp4 = new XMLHttpRequest();
-      var xhttp5 = new XMLHttpRequest();
+    const $ = (id) => document.getElementById(id);
+    const { fmt } = MaxPV;
+    const set = (id, text) => { $(id).textContent = text; };
+    const kwh = (v) => fmt.number(v, 3, "kWh");
+    const MODES = { STOP: "Arrêt", AUTO: "Auto", FORCE: "Forcé" };
+    const STATES = { ON: "en marche", OFF: "à l'arrêt", MAX: "pleine puissance", STOP: "arrêté", FORCE: "forcé" };
+    const describe = (x) => (MODES[x.mode] || x.mode) + (x.state ? ", " + (STATES[x.state] || x.state) : "");
 
-      xhttp1.onreadystatechange = function () {
-        if (this.readyState == 4 && this.status == 200) {
-          var config = this.responseText.split(",");
-          document.getElementById("vrms").innerHTML = config[0];
-          document.getElementById("irms").innerHTML = config[1];
-          document.getElementById("pact").innerHTML = config[2];
-          document.getElementById("papp").innerHTML = config[3];
-          document.getElementById("prouted").innerHTML = config[4];
-          document.getElementById("cosphi").innerHTML = config[7];
-          document.getElementById("indexrouted").innerHTML = config[8];
-          document.getElementById("indeximport").innerHTML = config[9];
-          document.getElementById("indexexport").innerHTML = config[10];
-          document.getElementById("indeximpulsion").innerHTML = config[11];
-          document.getElementById("indexrelay").innerHTML = config[22];
-          document.getElementById("pimpulsion").innerHTML = config[12];
-          document.getElementById("dmin").innerHTML = config[15];
-          document.getElementById("davg").innerHTML = config[16];
-          document.getElementById("dmax").innerHTML = config[17];
-          document.getElementById("vbias").innerHTML = config[18];
-          document.getElementById("status").innerHTML = config[19];
-          document.getElementById("ontime").innerHTML = config[20];
-          document.getElementById("sample").innerHTML = config[21];
-          document.getElementById("indexroutedJ").innerHTML = (parseFloat( config[8] ) - parseFloat( config[24]) ).toFixed(3).toString();
-          document.getElementById("indeximportJ").innerHTML = (parseFloat( config[9] ) - parseFloat( config[25]) ).toFixed(3).toString();
-          document.getElementById("indexexportJ").innerHTML = (parseFloat( config[10] ) - parseFloat( config[26]) ).toFixed(3).toString();
-          document.getElementById("indeximpulsionJ").innerHTML = (parseFloat( config[11] ) - parseFloat( config[27]) ).toFixed(3).toString();
-          document.getElementById("indexrelayJ").innerHTML = (parseInt( config[22], 10 ) - parseInt( config[28], 10 ) ).toString();
-          document.getElementById("temperature").innerHTML = config[23];
-        }
-      };
-      xhttp1.open("GET", "api/get?alldata", true);
-      xhttp1.send();
+    MaxPV.onStatus((s, link) => {
+      if (link === "demo") { $("link").textContent = "Démo"; $("link").className = "pill info"; }
+      else if (link === "lost") { $("link").textContent = "Connexion perdue"; $("link").className = "pill bad"; }
+      else if (s && !s.ecopv) { $("link").textContent = "EcoPV ne répond pas"; $("link").className = "pill warn"; }
+      else { $("link").textContent = "En ligne"; $("link").className = "pill ok"; }
+      if (!s) return;
 
-      xhttp2.onreadystatechange = function () {
-        if (this.readyState == 4 && this.status == 200) {
-          var result = this.responseText;
-          result = "SSR " + result;
-          document.getElementById("ssrstate").innerHTML = result;
-        }
-      };
-      xhttp2.open("GET", "api/get?ssrstate", true);
-      xhttp2.send();
+      set("clock", s.time ? new Date(s.time * 1000).toLocaleString("fr-FR") : "Heure non synchronisée");
+      set("boost", s.boost.on ? "en cours, encore " + fmt.duration(s.boost.remaining) : "arrêté");
+      set("ssr", s.boost.on ? "piloté par le boost" : describe(s.ssr));
+      set("relay", describe(s.relay));
+      set("relayplus", s.relay.relayplus ? "actif" : "inactif");
 
-      xhttp3.onreadystatechange = function () {
-        if (this.readyState == 4 && this.status == 200) {
-          var result = this.responseText;
-          result = "Relais " + result;
-          document.getElementById("relaystate").innerHTML = result;
-        }
-      };
-      xhttp3.open("GET", "api/get?relaystate", true);
-      xhttp3.send();
+      set("vrms", fmt.number(s.vrms, 1, "V"));
+      set("irms", fmt.number(s.irms, 2, "A"));
+      set("cosphi", fmt.number(s.cosphi, 3));
+      set("papp", fmt.number(s.papp, 0, "VA"));
+      set("pact", fmt.power(s.pact));
+      set("prouted", fmt.power(s.prouted));
+      set("pprod", fmt.power(s.pprod));
+      set("temp", fmt.known(s.temp) ? s.temp + " °C" : "pas de sonde");
 
-      xhttp4.onreadystatechange = function () {
-        if (this.readyState == 4 && this.status == 200) {
-          var result = this.responseText;
-          document.getElementById("time").innerHTML = result;
-        }
-      };
-      xhttp4.open("GET", "api/get?time", true);
-      xhttp4.send();
+      set("day-import", kwh(s.day.import));
+      set("day-export", kwh(s.day.export));
+      set("day-routed", kwh(s.day.routed));
+      set("day-prod", kwh(s.day.prod));
+      set("day-relay", fmt.number(s.day.relay, 0, "min"));
+      set("index-import", kwh(s.index.import));
+      set("index-export", kwh(s.index.export));
+      set("index-routed", kwh(s.index.routed));
+      set("index-prod", kwh(s.index.prod));
+      set("index-relay", fmt.number(s.index.relay, 0, "min"));
 
-      xhttp5.onreadystatechange = function () {
-        if (this.readyState == 4 && this.status == 200) {
-          var result = this.responseText;
-          result = "Boost " + result;
-          document.getElementById("booststate").innerHTML = result;
-        }
-      };
-      xhttp5.open("GET", "api/get?booststate", true);
-      xhttp5.send();
+      set("ecopvuptime", s.ecopvuptime ? s.ecopvuptime.replace(/^(\d+):/, "$1 j ") : "—");
+      set("vbias", fmt.number(s.vbias, 3, "V"));
+      set("dmin", fmt.number(s.dmin, 2, "ms"));
+      set("davg", fmt.number(s.davg, 2, "ms"));
+      set("dmax", fmt.number(s.dmax, 2, "ms"));
+      set("statusbyte", s.statusbyte || "—");
+      set("samples", fmt.number(s.samples, 0, "éch./s"));
 
-    }, 1000);
-
-    function sendMode(name, ele) {
-      var xhttp = new XMLHttpRequest();
-      var args = "api/set?";
-      args += name;
-      args += "&value=";
-      args += ele.id.replace("relay", "").replace("ssr", "");
-      xhttp.open("GET", args, true);
-      xhttp.send();
-      ele.blur();
-    }
-
-    function sendAction(action, ele) {
-            var xhttp = new XMLHttpRequest();
-            xhttp.open("GET", "api/action?" + action, true);
-            xhttp.send();
-            ele.blur();
-        }
+      set("uptime", fmt.duration(s.uptime));
+      set("rssi", s.rssi + " dBm");
+      set("mqtt", { off: "inactif", connected: "connecté", disconnected: "déconnecté" }[s.mqtt] || s.mqtt);
+      set("versions", "MaxPV! " + s.version.maxpv + " · site " + s.version.web + " · EcoPV " + (s.version.ecopv || "—"));
+    });
 
   </script>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa" crossorigin="anonymous"></script>
-
 </body>
 
 </html>
