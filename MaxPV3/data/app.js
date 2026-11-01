@@ -92,13 +92,21 @@ const MaxPV = (() => {
 
   // Commande : boost, SSR ou relais. L'état est relu aussitôt, puis une seconde fois
   // car EcoPV ne confirme le changement qu'à sa transmission suivante
+  // Requête de l'API qui modifie l'état : en POST et réservée aux utilisateurs authentifiés.
+  // Le navigateur demande l'identifiant et le mot de passe au premier appel (authentification Digest)
+  // puis les réutilise. Réponse "Request successfully processed" en cas de succès
+  async function post(path, body) {
+    if (demo) { Demo.command(path); return "Request successfully processed"; }
+    const response = await fetch(path, { method: "POST", cache: "no-store", body: body });
+    const text = await response.text();
+    if (response.status === 401) throw new Error("identifiant ou mot de passe refusé");
+    if (response.status === 403) throw new Error("requête refusée");
+    if (!response.ok || !text.startsWith("Request successfully")) throw new Error(text);
+    return text;
+  }
+
   async function command(path) {
-    if (demo) Demo.command(path);
-    else {
-      const response = await fetch(path, { cache: "no-store" });
-      const text = await response.text();
-      if (!response.ok || !text.startsWith("Request successfully")) throw new Error(text);
-    }
+    await post(path);
     refreshSoon();
   }
 
@@ -115,15 +123,8 @@ const MaxPV = (() => {
     return response.text();
   }
 
-  // Requête de l'API qui répond "Request successfully processed" en cas de succès
-  async function request(path) {
-    const text = demo ? (Demo.command(path), "Request successfully processed") : await getText(path);
-    if (!text.startsWith("Request successfully")) throw new Error(text);
-    return text;
-  }
-
   // Actions de l'API : restart, saveparam, loadparam, saveindex, resetindex, format, rebootesp, eraseconfigesp
-  const action = (name) => request("api/action?" + name);
+  const action = (name) => post("api/action?" + name);
 
   // Paramètres du routeur EcoPV, numérotés de 1 à 16 comme dans l'API
   const PARAMS = ["v_calib", "p_calib", "phase_calib", "p_offset", "p_resistance", "p_margin", "gain_p", "gain_i",
@@ -137,11 +138,12 @@ const MaxPV = (() => {
   }
 
   const setParam = (name, value) =>
-    request("api/set?param=" + (PARAMS.indexOf(name) + 1) + "&value=" + encodeURIComponent(String(value).trim()));
+    post("api/set?param=" + (PARAMS.indexOf(name) + 1) + "&value=" + encodeURIComponent(String(value).trim()));
 
-  // Configuration de MaxPV! (config.json), valeurs "0"/"1" pour les interrupteurs
+  // Configuration de MaxPV! (config.json), valeurs 0/1 pour les interrupteurs.
+  // La lecture ne contient pas les mots de passe ; une clé absente à l'envoi conserve la valeur actuelle
   const getConfig = () => getJSON("api/get?configmaxpv");
-  const setConfig = (config) => request("api/set?configmaxpv&value=" + encodeURIComponent(JSON.stringify(config)));
+  const setConfig = (config) => post("api/set", new URLSearchParams({ configmaxpv: "", value: JSON.stringify(config) }));
 
   // ---------- Notifications ----------
 
@@ -318,7 +320,7 @@ const MaxPV = (() => {
     const config = {
       ip: "192.168.1.250", gateway: "192.168.1.1", subnet: "255.255.255.0", dns1: "192.168.1.1", dns2: "8.8.8.8",
       http_port: 80, watchdogwifi_active: 0, boost_duration: 120, boost_ratio: 100,
-      mqtt_ip: "192.168.1.100", mqtt_port: 1883, mqtt_period: 10, mqtt_user: "", mqtt_pass: "", mqtt_active: 1,
+      mqtt_ip: "192.168.1.100", mqtt_port: 1883, mqtt_period: 10, mqtt_user: "", mqtt_active: 1, web_user: "admin",
       boost_timer_hour: 4, boost_timer_minute: 0, boost_timer_active: 0,
       remoterelay_active: 0, remoterelay_ip: "192.168.1.200", remoterelay_port: 80, remoterelay_on: "/relay0/cmd/1", remoterelay_off: "/relay0/cmd/0",
       RelayPlus_min: 60, RelayPlus_max: 480, RelayPlus_hour: 21, RelayPlus_active: 0, max_temp: 60, temp_limit_active: 1

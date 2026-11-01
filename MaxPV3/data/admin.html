@@ -62,9 +62,28 @@
           <label class="field"><span>Utilisateur (optionnel)</span>
             <input type="text" name="mqtt_user" maxlength="39" autocomplete="off"></label>
           <label class="field"><span>Mot de passe (optionnel)</span>
-            <input type="password" name="mqtt_pass" maxlength="39" autocomplete="new-password"></label>
+            <input type="password" name="mqtt_pass" maxlength="39" autocomplete="new-password" data-secret placeholder="Inchangé">
+            <small>Laisser vide pour conserver le mot de passe actuel</small></label>
           <label class="field"><span>Intervalle de publication (s)</span>
             <input type="number" name="mqtt_period" required min="1" max="3600" step="1"></label>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">Accès à l'interface</h2>
+        <p class="hint">
+          Identifiant et mot de passe demandés pour les pages de configuration, la mise à jour et les commandes.
+          Identifiants d'origine : admin / maxpv, à changer.
+        </p>
+        <div class="form-grid">
+          <label class="field"><span>Identifiant</span>
+            <input type="text" name="web_user" required maxlength="39" autocomplete="username"></label>
+          <span></span>
+          <label class="field"><span>Nouveau mot de passe</span>
+            <input type="password" name="web_pass" maxlength="39" minlength="5" autocomplete="new-password" data-secret placeholder="Inchangé">
+            <small>Laisser vide pour conserver le mot de passe actuel</small></label>
+          <label class="field"><span>Confirmation du mot de passe</span>
+            <input type="password" id="web_pass_confirm" maxlength="39" autocomplete="new-password" placeholder="Inchangé"></label>
         </div>
       </section>
 
@@ -141,7 +160,7 @@
 
       <section class="card">
         <h2 class="card-title">Sauvegarde et restauration</h2>
-        <p class="hint">Le fichier exporté contient toute la configuration de MaxPV!, y compris le mot de passe MQTT.</p>
+        <p class="hint">Le fichier exporté contient la configuration de MaxPV! sans les mots de passe (MQTT et interface) : une restauration conserve les mots de passe actuels.</p>
         <div class="btn-row" style="margin-top: 14px;">
           <a class="btn" href="DLconfig" download="config.json">Exporter la configuration</a>
         </div>
@@ -202,6 +221,8 @@
         if (!input.name) return;
         if (input.type === "checkbox") config[input.name] = input.checked ? 1 : 0;
         else if (input.type === "number") config[input.name] = Number(input.value);
+        // Mot de passe laissé vide : clé absente, MaxPV! conserve le mot de passe actuel
+        else if ("secret" in input.dataset) { if (input.value !== "") config[input.name] = input.value; }
         else config[input.name] = input.value.trim();
       });
       return config;
@@ -230,7 +251,15 @@
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       if (!form.reportValidity()) return;
-      if (!confirm("Enregistrer la configuration et redémarrer MaxPV! ?")) return;
+      const webPass = form.elements.web_pass.value;
+      if (webPass !== document.getElementById("web_pass_confirm").value) {
+        MaxPV.toast("Les deux mots de passe de l'interface sont différents", "bad");
+        return;
+      }
+      const question = webPass
+        ? "Enregistrer la configuration et redémarrer MaxPV! ?\n\nLe nouveau mot de passe de l'interface sera demandé à la prochaine action protégée."
+        : "Enregistrer la configuration et redémarrer MaxPV! ?";
+      if (!confirm(question)) return;
       saveAndReboot(collect(), saveButton).catch(() => {});
     });
 

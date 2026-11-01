@@ -47,7 +47,15 @@
 #define HTTP_PORT       80              // Port serveur web MaxPV!
 
 // Taille de la configuration JSON MaxPV! pour la manipulation
-#define JSON_CONFIG_SIZE    1100        // en caractères
+// Attention : un échec de lecture de config.json au démarrage efface la configuration,
+// la taille doit couvrir toutes les clés et les chaînes les plus longues
+#define JSON_CONFIG_SIZE    2048        // en caractères
+
+// Accès protégé à l'interface Web : pages de configuration, mise à jour, actions et réglages
+// Authentification HTTP Digest, identifiant et mot de passe modifiables dans la page Administration
+#define DEFAULT_WEB_USER    "admin"
+#define DEFAULT_WEB_PASS    "maxpv"
+#define WEB_REALM           "MaxPV"
 
 // Valeurs par défaut de la configuration TCP MaxPV!
 #define DEFAULT_IP          "192.168.1.250"

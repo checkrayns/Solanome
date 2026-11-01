@@ -130,6 +130,31 @@ Pour les développeurs : les fichiers du site Web restent dans *MaxPV3/data*. À
 L'API permet d'interfacer MaxPV! avec des systèmes externes comme un système de domotique. L'API a été revue en profondeur comparativement à la version précédente de EcoPV. L'API est décrite dans la [Documentation API](Documentation%20API/API_MaxPV.pdf).
 Depuis la version 3.66, `http://maxpv/api/status` renvoie en un seul JSON tout l'état de MaxPV! : mesures, énergies du jour, index totaux, états du SSR, du relais et du boost, versions.
 
+## Authentification
+Les pages et requêtes qui modifient MaxPV! sont protégées par un identifiant et un mot de passe (authentification HTTP Digest : le mot de passe ne circule pas en clair).
+* **Identifiants d'origine : `admin` / `maxpv`**. Changez le mot de passe dans la page *Administration*, carte *Accès à l'interface*.
+* Pages protégées : *Administration*, *Paramétrage avancé*, *Assistant de configuration*, *Mise à jour* (`/update`), ainsi que l'export de la configuration (`/DLconfig`).
+* Requêtes protégées : `/api/action` et `/api/set`. **Elles doivent être envoyées en POST** (les requêtes GET ne sont plus acceptées), les paramètres pouvant rester dans l'URL. Une requête émise par une autre page Web que celle de MaxPV! est refusée (protection contre le CSRF).
+* Restent en accès libre : le tableau de bord, les graphiques, le journal et les API de consultation (`/api/status`, `/api/get`, `/api/history`, `/api/events`). La configuration renvoyée par `/api/get?configmaxpv` et `/DLconfig` ne contient pas les mots de passe.
+* Le pilotage par MQTT n'est pas concerné.
+
+Exemple avec curl, pour redémarrer MaxPV! :
+```
+curl --digest -u admin:VOTRE_MOT_DE_PASSE -X POST "http://192.168.1.250/api/action?rebootesp"
+```
+Exemple pour Home Assistant (`configuration.yaml`) :
+```yaml
+rest_command:
+  maxpv_reboot:
+    url: "http://192.168.1.250/api/action?rebootesp"
+    method: post
+    username: admin
+    password: !secret maxpv_password
+    authentication: digest
+```
+En cas d'oubli du mot de passe, le retour à la configuration d'origine se fait en effaçant la configuration (nouvelle installation du Wemos par USB).
+Attention : MaxPV! fonctionne en HTTP, sans chiffrement. L'authentification protège le mot de passe et empêche les commandes non autorisées, mais une personne qui écoute votre réseau local peut voir les échanges. Réservez l'accès à MaxPV! à votre réseau local.
+
 ## WatchDog Wifi
 Un WatchDog Wifi est implémenté. L'activation est possible dans la page administration.
 En position OFF, la connexion Wifi et la connexion MQTT utilisent un mode de reconnexion automatique standard. Si le fonctionnement de MaxPV! est satisfaisant en position WatchDog Wifi OFF, conserver ce réglage.

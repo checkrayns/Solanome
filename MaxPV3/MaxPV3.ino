@@ -57,6 +57,7 @@
 #include <AsyncMqtt_Generic.h>
 #include <AsyncHTTPRequest_Generic.h> 
 #include <Updater.h>
+#include <MD5Builder.h>
 #include <Ticker.h>
 #include <TickerScheduler.h>
 #include <ArduinoJson.h>
@@ -164,6 +165,11 @@ uint16_t mqttPort   = DEFAULT_MQTT_PORT;            // Port du serveur MQTT
 int mqttPeriod      = DEFAULT_MQTT_PUBLISH_PERIOD;  // Période de transmission en secondes
 int mqttActive      = OFF;                          // MQTT actif (= ON) ou non (= OFF)
 
+// Accès protégé à l'interface Web (authentification Digest)
+String webUser;                                     // Identifiant
+String webPass;                                     // Mot de passe
+String webHA1;                                      // Empreinte Digest MD5(identifiant:WEB_REALM:mot de passe)
+
 // Configuration du relais distant
 String relaisDistantIP;                                     // IP du relais distant       
 uint16_t relaisDistantPort   = DEFAULT_REMOTE_RELAY_PORT;   // Port du relais distant
@@ -205,6 +211,8 @@ bool shouldReboot = false;
 byte rebootCause = EVT_BOOT_WEB;
 // Flag indiquant que le firmware reçu par OTA a été écrit avec succès
 bool otaSuccess = false;
+// Requête autorisée en cours d'envoi du firmware (comparaison d'adresse uniquement)
+const void* otaRequest = nullptr;
 // Flag indiquant la nécessité de sauvegarder la configuration de MaxPV!
 bool shouldSaveConfig = false;
 // Flag indiquant la nécessité de lire les paramètres de routage EcoPV
@@ -349,6 +357,12 @@ AsyncWiFiManager  wifiManager(&webServer, &dnsServer);
   mqttIP      = DEFAULT_MQTT_SERVER;     
   mqttUser    = DEFAUT_EMPTY_USER;     
   mqttPass    = DEFAUT_EMPTY_PWD;
+
+  webUser.reserve(DEFAUT_USER_LENGTH);
+  webPass.reserve(DEFAUT_PWD_LENGTH);
+  webUser     = DEFAULT_WEB_USER;
+  webPass     = DEFAULT_WEB_PASS;
+  updateWebHA1();
 
   relaisDistantIP.reserve(15);
   relaisDistantOn.reserve(DEFAUT_PATH_CMD);
@@ -770,7 +784,7 @@ bool configRead(const String& configString)
         if (jsonConfig.containsKey("mqtt_port"))          mqttPort = jsonConfig["mqtt_port"]; else shouldSaveConfig = true;
         if (jsonConfig.containsKey("mqtt_period"))        mqttPeriod = jsonConfig["mqtt_period"]; else shouldSaveConfig = true;
         if (jsonConfig.containsKey("mqtt_user"))          mqttUser = jsonConfig["mqtt_user"].as<String>(); else shouldSaveConfig = true;
-        if (jsonConfig.containsKey("mqtt_user"))          mqttPass = jsonConfig["mqtt_pass"].as<String>(); else shouldSaveConfig = true;
+        if (jsonConfig.containsKey("mqtt_pass"))          mqttPass = jsonConfig["mqtt_pass"].as<String>(); else shouldSaveConfig = true;
         if (jsonConfig.containsKey("mqtt_active"))        mqttActive = jsonConfig["mqtt_active"]; else shouldSaveConfig = true;
         if (jsonConfig.containsKey("boost_timer_hour"))   boostTimerHour = jsonConfig["boost_timer_hour"]; else shouldSaveConfig = true;
         if (jsonConfig.containsKey("boost_timer_minute")) boostTimerMinute = jsonConfig["boost_timer_minute"]; else shouldSaveConfig = true;
@@ -786,6 +800,17 @@ bool configRead(const String& configString)
         if (jsonConfig.containsKey("RelayPlus_active"))   relayPlusActive = jsonConfig["RelayPlus_active"]; else shouldSaveConfig = true;
         if (jsonConfig.containsKey("max_temp"))           maxTemp = jsonConfig["max_temp"]; else shouldSaveConfig = true;
         if (jsonConfig.containsKey("temp_limit_active"))  tempLimitActive = jsonConfig["temp_limit_active"]; else shouldSaveConfig = true;
+
+        // Identifiants de l'interface Web : une valeur vide est ignorée pour ne jamais laisser l'accès ouvert
+        if (jsonConfig.containsKey("web_user")) {
+          if (jsonConfig["web_user"].as<String>().length() > 0) webUser = jsonConfig["web_user"].as<String>();
+        }
+        else shouldSaveConfig = true;
+        if (jsonConfig.containsKey("web_pass")) {
+          if (jsonConfig["web_pass"].as<String>().length() > 0) webPass = jsonConfig["web_pass"].as<String>();
+        }
+        else shouldSaveConfig = true;
+        updateWebHA1();
 
         // traitement des durées min et max du mode RelayPlus
         if ( relayPlusMin <= 5)  relayPlusMin = 5;
@@ -824,6 +849,8 @@ void configWrite(void)
   jsonConfig["mqtt_user"] = mqttUser;
   jsonConfig["mqtt_pass"] = mqttPass;
   jsonConfig["mqtt_active"] = mqttActive;
+  jsonConfig["web_user"] = webUser;
+  jsonConfig["web_pass"] = webPass;
   jsonConfig["boost_timer_hour"] = boostTimerHour;
   jsonConfig["boost_timer_minute"] = boostTimerMinute;
   jsonConfig["boost_timer_active"] = boostTimerActive; 
@@ -843,6 +870,41 @@ void configWrite(void)
   File configFile = LittleFS.open(F("/config.json"), "w");
   serializeJson(jsonConfig, configFile);
   configFile.close();
+}
+
+///////////////////////////////////////////////////////////////////
+// Empreinte Digest des identifiants de l'interface Web          //
+// à recalculer après toute modification de webUser ou webPass   //
+///////////////////////////////////////////////////////////////////
+
+void updateWebHA1(void)
+{
+  MD5Builder md5;
+  md5.begin();
+  md5.add(webUser + F(":" WEB_REALM ":") + webPass);
+  md5.calculate();
+  webHA1 = md5.toString();
+}
+
+///////////////////////////////////////////////////////////////////
+// Configuration en JSON sans les mots de passe (MQTT et Web)    //
+// pour la consultation et l'export : les clés absentes sont     //
+// conservées par configRead() lors d'une restauration           //
+///////////////////////////////////////////////////////////////////
+
+String publicConfigJson(void)
+{
+  DynamicJsonDocument jsonConfig(JSON_CONFIG_SIZE);
+  String json;
+  File configFile = LittleFS.open(F("/config.json"), "r");
+  if (configFile) {
+    deserializeJson(jsonConfig, configFile);
+    configFile.close();
+  }
+  jsonConfig.remove("mqtt_pass");
+  jsonConfig.remove("web_pass");
+  serializeJson(jsonConfig, json);
+  return json;
 }
 
 
@@ -2545,6 +2607,62 @@ void remoteRelay ( int state )
 ///////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////
+// Contrôle d'accès à l'interface Web                            //
+//                                                               //
+// Authentification HTTP Digest : le mot de passe ne circule     //
+// pas en clair. authenticate() est appelé avec l'empreinte HA1, //
+// ce qui écarte l'authentification Basic (mot de passe en       //
+// clair) : en mode empreinte, la bibliothèque compare la valeur //
+// Basic à l'empreinte elle-même.                                //
+// Les requêtes qui modifient l'état (POST) doivent en plus      //
+// venir de l'interface de MaxPV! (en-tête Origin) : protection  //
+// contre le CSRF, un navigateur renvoyant les identifiants      //
+// Digest mémorisés à toute requête vers MaxPV!                  //
+///////////////////////////////////////////////////////////////////
+
+// Identifiants Digest valides, sans réponse
+bool isWebAuthenticated (AsyncWebServerRequest * request)
+{
+  return request->authenticate ( webUser.c_str(), webHA1.c_str(), WEB_REALM, true );
+}
+
+
+// Identifiants Digest valides, sinon demande d'authentification (401)
+bool checkWebAuth (AsyncWebServerRequest * request)
+{
+  if ( isWebAuthenticated ( request ) ) return true;
+  request->requestAuthentication ( WEB_REALM, true );
+  return false;
+}
+
+
+// Requête émise par une page de MaxPV! ou sans navigateur (curl, Home Assistant : pas d'en-tête Origin)
+bool isSameOrigin (AsyncWebServerRequest * request)
+{
+  if ( !request->hasHeader ( F("Origin") ) ) return true;
+  return request->header ( F("Origin") ).equals ( String ( F("http://") ) + request->host() );
+}
+
+
+// Contrôles d'une requête qui modifie l'état : origine puis authentification
+bool checkWebChange (AsyncWebServerRequest * request)
+{
+  if ( !isSameOrigin ( request ) ) {
+    request->send ( 403, "text/plain", F("Forbidden") );
+    return false;
+  }
+  return checkWebAuth ( request );
+}
+
+
+// Pages réservées : configuration, administration, assistant et mise à jour
+bool isProtectedPage (const char* path)
+{
+  return ( strcmp ( path, "/configuration.html" ) == 0 ) || ( strcmp ( path, "/admin.html" ) == 0 )
+      || ( strcmp ( path, "/wizard.html" ) == 0 )        || ( strcmp ( path, "/maj.html" ) == 0 );
+}
+
+///////////////////////////////////////////////////////////////////
 // Envoi d'un fichier du site Web intégré au firmware            //
 // Les fichiers sont stockés compressés en gzip                  //
 ///////////////////////////////////////////////////////////////////
@@ -2777,6 +2895,7 @@ void setWebHandlers (void) {
     const webFile* file = &webFiles[i];
     webServer.on(file->path, HTTP_ANY, [file](AsyncWebServerRequest * request)
     {
+      if ( isProtectedPage ( file->path ) && !checkWebAuth ( request ) ) return;
       sendWebFile ( request, file );
     });
   }
@@ -2790,12 +2909,17 @@ void setWebHandlers (void) {
   // Une image filesystem est refusée par Update qui vérifie l'en-tête du firmware
   webServer.on("/update", HTTP_GET, [](AsyncWebServerRequest * request)
   {
+    if ( !checkWebAuth ( request ) ) return;
     sendWebFile ( request, findWebFile ( "/maj.html" ) );
   });
 
   webServer.on("/update", HTTP_POST, [](AsyncWebServerRequest * request)
   {
-    // Appelé une fois l'envoi du fichier terminé
+    // Appelé une fois l'envoi du fichier terminé. Sans autorisation, rien n'a été écrit en flash
+    bool written = ( request == otaRequest );
+    if ( written ) otaRequest = nullptr;
+    if ( !checkWebChange ( request ) ) return;
+    if ( !written ) otaSuccess = false;
     AsyncWebServerResponse *response;
     if ( otaSuccess ) {
       response = request->beginResponse ( 200, "text/plain", F("OK") );
@@ -2815,7 +2939,14 @@ void setWebHandlers (void) {
   {
     // Réception du firmware par morceaux
     if ( index == 0 ) {
+      // Sans autorisation, l'envoi est ignoré sans toucher à une mise à jour en cours :
+      // la réponse 401 ou 403 est faite à la fin de la requête
+      if ( !isSameOrigin ( request ) || !isWebAuthenticated ( request ) ) {
+        if ( request == otaRequest ) otaRequest = nullptr;   // adresse d'une requête précédente réutilisée
+        return;
+      }
       otaSuccess = false;
+      otaRequest = request;
       if ( Update.isRunning() ) Update.end();   // envoi précédent interrompu
       Update.runAsync ( true );
       uint32_t maxSketchSpace = ( ESP.getFreeSketchSpace() - 0x1000 ) & 0xFFFFF000;
@@ -2825,14 +2956,19 @@ void setWebHandlers (void) {
         logMqtt ( F("[ESP]"), F("Mise à jour du firmware en cours") );
       }
     }
+    // Seule la requête autorisée qui a démarré la mise à jour peut y écrire
+    if ( request != otaRequest ) return;
     if ( Update.isRunning() && len ) Update.write ( data, len );
     if ( final && Update.isRunning() ) otaSuccess = Update.end ( true );
   });
 
-  // Download le fichier de configuration de MaxPV!
-  webServer.on("/DLconfig", HTTP_ANY, [](AsyncWebServerRequest * request)
+  // Download le fichier de configuration de MaxPV!, sans les mots de passe
+  webServer.on("/DLconfig", HTTP_GET, [](AsyncWebServerRequest * request)
   {
-    request->send(LittleFS, F("/config.json"), String(), true);
+    if ( !checkWebAuth ( request ) ) return;
+    AsyncWebServerResponse *response = request->beginResponse ( 200, "application/json", publicConfigJson() );
+    response->addHeader ( F("Content-Disposition"), F("attachment; filename=\"config.json\"") );
+    request->send ( response );
   });
 
   delay(5);
@@ -2841,29 +2977,32 @@ void setWebHandlers (void) {
   // ********                  HANDLERS DE L'API                    ********
   // ***********************************************************************
 
-  webServer.on("/api/action", HTTP_GET, [](AsyncWebServerRequest * request)
+  // Actions et réglages : en POST, réservés aux utilisateurs authentifiés
+  // Les paramètres peuvent être passés dans l'URL (api/action?rebootesp) ou dans le corps de la requête
+  webServer.on("/api/action", HTTP_POST, [](AsyncWebServerRequest * request)
   {
+    if ( !checkWebChange ( request ) ) return;
     String response = F("Request successfully processed");
-    if ( request->hasParam ( F("restart") ) )
+    if ( request->hasArg ( F("restart") ) )
       restartEcoPV ( );
-    else if ( request->hasParam ( F("resetindex") ) )
+    else if ( request->hasArg ( F("resetindex") ) )
       resetIndexEcoPV ( );
-    else if ( request->hasParam ( F("saveindex") ) )
+    else if ( request->hasArg ( F("saveindex") ) )
       saveIndexEcoPV ( );
-    else if ( request->hasParam ( F("saveparam") ) )
+    else if ( request->hasArg ( F("saveparam") ) )
       saveConfigEcoPV ( );
-    else if ( request->hasParam ( F("loadparam") ) )
+    else if ( request->hasArg ( F("loadparam") ) )
       loadConfigEcoPV ( );
-    else if ( request->hasParam ( F("format") ) )
+    else if ( request->hasArg ( F("format") ) )
       formatEepromEcoPV ( );
-    else if ( request->hasParam ( F("eraseconfigesp") ) )
+    else if ( request->hasArg ( F("eraseconfigesp") ) )
       LittleFS.remove ( F("/config.json") );
-    else if ( request->hasParam ( F("rebootesp") ) ) {
+    else if ( request->hasArg ( F("rebootesp") ) ) {
       rebootCause = EVT_BOOT_WEB;
       shouldReboot = true;
     }
-    else if ( request->hasParam ( F("booston") ) )  boostON ( EVT_SRC_WEB );
-    else if ( request->hasParam ( F("boostoff") ) ) boostOFF ( EVT_SRC_WEB );
+    else if ( request->hasArg ( F("booston") ) )  boostON ( EVT_SRC_WEB );
+    else if ( request->hasArg ( F("boostoff") ) ) boostOFF ( EVT_SRC_WEB );
     else response = F("Unknown request");
     request->send ( 200, "text/plain", response );
   });
@@ -2879,7 +3018,7 @@ void setWebHandlers (void) {
   {
     String response = "";
     if ( request->hasParam ( F("configmaxpv") ) )
-      request->send ( LittleFS, F("/config.json"), "text/plain" );
+      request->send ( 200, "application/json", publicConfigJson() );
     else if ( request->hasParam ( F("versionweb") ) )
       request->send ( 200, "text/plain", F(WEB_VERSION) );
     else {
@@ -2922,21 +3061,22 @@ void setWebHandlers (void) {
     }
   });
 
-  webServer.on("/api/set", HTTP_GET, [](AsyncWebServerRequest * request)
+  webServer.on("/api/set", HTTP_POST, [](AsyncWebServerRequest * request)
   {
+    if ( !checkWebChange ( request ) ) return;
     String response = F("Request successfully processed");
     String mystring = "";
-    if ( ( request->hasParam ( F("param") ) ) && ( request->hasParam ( F("value") ) )
-         && ( request->getParam(F("param"))->value().toInt() > 0 ) && ( request->getParam(F("param"))->value().toInt() <= ( NB_PARAM - 1 ) ) ) {
-      mystring = request->getParam(F("value"))->value();
+    if ( ( request->hasArg ( F("param") ) ) && ( request->hasArg ( F("value") ) )
+         && ( request->arg(F("param")).toInt() > 0 ) && ( request->arg(F("param")).toInt() <= ( NB_PARAM - 1 ) ) ) {
+      mystring = request->arg(F("value"));
       mystring.replace( F(","), F(".") );
       mystring.trim();
-      setParamEcoPV ( request->getParam(F("param"))->value(), mystring );
+      setParamEcoPV ( request->arg(F("param")), mystring );
       // Note : la mise à jour de la base interne de MaxPV se fera de manière asynchrone
       // setParamEcoPV() demande à EcoPV de renvoyer tous les paramètres à MaxPV
     }
-    else if ( ( request->hasParam ( F("relaymode") ) ) && ( request->hasParam ( F("value") ) ) ) {
-      mystring = request->getParam("value")->value();
+    else if ( ( request->hasArg ( F("relaymode") ) ) && ( request->hasArg ( F("value") ) ) ) {
+      mystring = request->arg(F("value"));
       mystring.trim();
       if ( mystring == F("stop") )        relayModeEcoPV ( STOP );
       else if ( mystring == F("force") )  relayModeEcoPV ( FORCE );
@@ -2945,16 +3085,16 @@ void setWebHandlers (void) {
       // on déacive relay+ s'il était activé
       relaisPlusIndex = -1;
     }
-    else if ( ( request->hasParam ( F("ssrmode") ) ) && ( request->hasParam ( F("value") ) ) ) {
-      mystring = request->getParam(F("value"))->value();
+    else if ( ( request->hasArg ( F("ssrmode") ) ) && ( request->hasArg ( F("value") ) ) ) {
+      mystring = request->arg(F("value"));
       mystring.trim();
       if ( mystring == F("stop") )        SSRModeEcoPV ( STOP, EVT_SRC_WEB );
       else if ( mystring == F("force") )  SSRModeEcoPV ( FORCE, EVT_SRC_WEB );
       else if ( mystring == F("auto") )   SSRModeEcoPV ( AUTOM, EVT_SRC_WEB );
       else response = F("Bad request");
     }
-    else if ( ( request->hasParam ( F("configmaxpv") ) ) && ( request->hasParam ( F("value") ) ) ) {
-      mystring = request->getParam(F("value"))->value();
+    else if ( ( request->hasArg ( F("configmaxpv") ) ) && ( request->hasArg ( F("value") ) ) ) {
+      mystring = request->arg(F("value"));
       if (configRead(mystring)) shouldSaveConfig = true;
     }
     else response = F("Bad request or request unknown");
