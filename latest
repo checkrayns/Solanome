@@ -1,6 +1,6 @@
 {
   "ecopvver" : "3.60",
-  "maxpvver" : "3.68",
-  "webver" : "3.68",
-  "whatsnew" : "Nouveautés : Correction du mode Administrateur : la mise à jour du firmware échouait si le navigateur avait mémorisé des identifiants.<br>Voir les informations sur GitHub.<br>Rendez-vous à <a href=\"https://github.com/checkrayns/MaxPV\" target=\"_blank\">https://github.com/checkrayns/MaxPV</a><br>"
+  "maxpvver" : "3.69",
+  "webver" : "3.69",
+  "whatsnew" : "Nouveautés : Protection de l'authentification contre le rejeu, passage aux bibliothèques ESP32Async.<br>Voir les informations sur GitHub.<br>Rendez-vous à <a href=\"https://github.com/checkrayns/MaxPV\" target=\"_blank\">https://github.com/checkrayns/MaxPV</a><br>"
 }

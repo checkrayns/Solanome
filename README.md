@@ -154,7 +154,7 @@ rest_command:
     authentication: digest
 ```
 En cas d'oubli du mot de passe, le retour à la configuration d'origine se fait en effaçant la configuration (nouvelle installation du Wemos par USB).
-Attention : MaxPV! fonctionne en HTTP, sans chiffrement. L'authentification protège le mot de passe et empêche les commandes non autorisées, mais une personne qui écoute votre réseau local peut voir les échanges. Réservez l'accès à MaxPV! à votre réseau local.
+Attention : MaxPV! fonctionne en HTTP, sans chiffrement. L'authentification protège le mot de passe et empêche les commandes non autorisées (une requête interceptée ne peut pas être rejouée), mais une personne qui écoute votre réseau local peut voir les échanges. Réservez l'accès à MaxPV! à votre réseau local.
 
 ## WatchDog Wifi
 Un WatchDog Wifi est implémenté. L'activation est possible dans la page administration.
@@ -187,6 +187,10 @@ Les pins d'entrée-sortie de l'Arduino Nano sont configurables dans le code EcoP
 La pin D9 est utilisé pour la sonde de température 1-Wire depuis la version 3.60.
 
 # Versions
+### **V 3.69** - 01/11/2026
+* Sécurité : protection de l'authentification contre le rejeu. MaxPV! émet ses propres défis (valables 5 minutes), vérifie le compteur de chaque requête et l'adresse signée : une requête authentifiée interceptée ne peut plus être rejouée, ni sur la même adresse ni sur une autre.
+* Passage aux bibliothèques maintenues ESP32Async : ESPAsyncWebServer 3.12.1 et ESPAsyncTCP 2.0.0 (dossier *Librairies IDE*).
+* Versions : MaxPV! 3.69, site Web 3.69, EcoPV 3.60.
 ### **V 3.68** - 01/11/2026
 * Correction du mode Administrateur : si le navigateur avait mémorisé des identifiants pour MaxPV!, la mise à jour du firmware échouait ("challenge is null") et la fenêtre de connexion pouvait accepter un mauvais mot de passe.
 * Si la mise à jour vers la 3.68 échoue avec cette erreur, fermez complètement le navigateur ou utilisez une fenêtre de navigation privée, puis recommencez.
