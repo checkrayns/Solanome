@@ -187,6 +187,10 @@ Les pins d'entrée-sortie de l'Arduino Nano sont configurables dans le code EcoP
 La pin D9 est utilisé pour la sonde de température 1-Wire depuis la version 3.60.
 
 # Versions
+### **V 3.68** - 01/11/2026
+* Correction du mode Administrateur : si le navigateur avait mémorisé des identifiants pour MaxPV!, la mise à jour du firmware échouait ("challenge is null") et la fenêtre de connexion pouvait accepter un mauvais mot de passe.
+* Si la mise à jour vers la 3.68 échoue avec cette erreur, fermez complètement le navigateur ou utilisez une fenêtre de navigation privée, puis recommencez.
+* Versions : MaxPV! 3.68, site Web 3.68, EcoPV 3.60.
 ### **V 3.67** - 01/11/2026
 * Mode Administrateur : les pages Administration, Paramétrage avancé, Assistant de configuration et Mise à jour, ainsi que les commandes du tableau de bord, sont réservées à l'administrateur. **Identifiants d'origine : admin / maxpv**, à changer dans la page Administration.
 * Authentification HTTP Digest de toutes les requêtes qui modifient MaxPV! (actions, réglages, mise à jour du firmware, export de la configuration) et protection contre le CSRF.

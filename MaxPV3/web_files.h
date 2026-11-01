@@ -3,7 +3,7 @@
 
 #pragma once
 
-#define WEB_VERSION "3.67"
+#define WEB_VERSION "3.68"
 
 // Fichier du site Web compressé en gzip
 struct webFile

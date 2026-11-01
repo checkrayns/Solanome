@@ -1,6 +1,6 @@
 {
   "ecopvver" : "3.60",
-  "maxpvver" : "3.67",
-  "webver" : "3.67",
-  "whatsnew" : "Nouveautés : Mode Administrateur protégé par mot de passe (identifiants d'origine admin / maxpv, à changer). Attention : les commandes HTTP /api/action et /api/set passent en POST avec authentification.<br>Voir les informations sur GitHub.<br>Rendez-vous à <a href=\"https://github.com/checkrayns/MaxPV\" target=\"_blank\">https://github.com/checkrayns/MaxPV</a><br>"
+  "maxpvver" : "3.68",
+  "webver" : "3.68",
+  "whatsnew" : "Nouveautés : Correction du mode Administrateur : la mise à jour du firmware échouait si le navigateur avait mémorisé des identifiants.<br>Voir les informations sur GitHub.<br>Rendez-vous à <a href=\"https://github.com/checkrayns/MaxPV\" target=\"_blank\">https://github.com/checkrayns/MaxPV</a><br>"
 }
