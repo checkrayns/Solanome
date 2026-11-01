@@ -107,6 +107,18 @@
 #define EVT_MQTT_LOST      9    // Perte MQTT, detail = AsyncMqttClientDisconnectReason
 #define EVT_MQTT_OK        10   // Connexion MQTT, value = durée de coupure en secondes (-1 = première connexion)
 #define EVT_REBOOT         11   // Redémarrage décidé par MaxPV!, detail = cause (mêmes codes que EVT_BOOT)
+#define EVT_CONFIG         12   // Fichier de configuration, detail = EVT_CONFIG_xxx
+
+// Détail des événements EVT_CONFIG
+#define EVT_CONFIG_BACKUP_ABSENT   1   // Configuration lue dans config.bak, config.json absent
+#define EVT_CONFIG_BACKUP_INVALID  2   // Configuration lue dans config.bak, config.json illisible
+#define EVT_CONFIG_WRITE_ERROR     3   // Enregistrement de la configuration impossible
+
+// Résultat de la lecture de la configuration
+#define CONFIG_OK          0    // configuration lue et appliquée
+#define CONFIG_ABSENT      1    // fichier absent
+#define CONFIG_INVALID     2    // contenu incorrect : JSON invalide, incomplet ou vide, adresse IP absente
+#define CONFIG_NOMEMORY    3    // mémoire insuffisante : la configuration n'est pas en cause
 
 // Origines et raisons des événements boost et SSR
 #define EVT_SRC_WEB        1    // Interface web ou API HTTP
@@ -123,6 +135,7 @@
 #define EVT_BOOT_FS        12   // Erreur de filesystem
 #define EVT_BOOT_OTA       13   // Mise à jour du firmware
 #define EVT_BOOT_WIFI      14   // Absence de Wifi pendant WIFI_REBOOT_TIMEOUT
+#define EVT_BOOT_CONFIG_MEM 15  // Mémoire insuffisante pour lire la configuration
 
 
 // ***********************************************************************************
@@ -227,6 +240,8 @@ bool otaSuccess = false;
 const void* otaRequest = nullptr;
 // Flag indiquant la nécessité de sauvegarder la configuration de MaxPV!
 bool shouldSaveConfig = false;
+// config.json est valide (lu ou écrit avec succès) : il peut devenir la copie de secours config.bak
+bool configFileValid = false;
 // Flag indiquant la nécessité de lire les paramètres de routage EcoPV
 bool shouldReadParams = false;
 // Flag indiquant la nécessité de vérifier la connexion effective au Wifi
@@ -343,7 +358,6 @@ AsyncWiFiManager  wifiManager(&webServer, &dnsServer);
 
 // Déclaration des variables locales
   IPAddress         _ip, _gw, _sn, _dns1, _dns2;
-  File              configFile;
   boolean           APmode = true;
   String            msg;
   unsigned long     refTime = millis();
@@ -421,28 +435,45 @@ AsyncWiFiManager  wifiManager(&webServer, &dnsServer);
 
   delay(5);
 
-  // On teste l'existence du fichier de configuration de MaxPV!
-  if (LittleFS.exists(F("/config.json"))) {
-    String msg_tmp;
-    msg_tmp.reserve(2048);
-    configFile = LittleFS.open(F("/config.json"), "r");
-    msg_tmp = configFile.readString();
-    configFile.close();
-    logSerial ( F("[ESP]"), F("Fichier de configuration présent") ); 
-    if (configRead(msg_tmp)) {
-      logSerial ( F("[ESP]"), F("Configuration lue") );
+  // Chargement de la configuration de MaxPV! : config.json, sinon la copie de secours config.bak
+  // Un config.tmp restant vient d'un enregistrement interrompu : config.json n'a pas été remplacé
+  LittleFS.remove ( "/config.tmp" );
+  byte configResult = configReadFile ( "/config.json" );
+  byte backupResult = CONFIG_ABSENT;
+  if ( configResult == CONFIG_OK ) {
+    logSerial ( F("[ESP]"), F("Configuration lue") );
+    configFileValid = true;
+    APmode = false;
+  }
+  else if ( configResult != CONFIG_NOMEMORY ) {
+    backupResult = configReadFile ( "/config.bak" );
+    if ( backupResult == CONFIG_OK ) {
+      // config.json est réécrit à partir de la copie de secours, qui est conservée
+      logSerial ( F("[ESP]"), F("Configuration lue dans la copie de secours") );
+      logEvent ( EVT_CONFIG, ( configResult == CONFIG_ABSENT ) ? EVT_CONFIG_BACKUP_ABSENT : EVT_CONFIG_BACKUP_INVALID, 0 );
+      shouldSaveConfig = true;
       APmode = false;
     }
-    else {
-      logSerial ( F("[ESP]"), F("Fichier de configuration incorrect, effacement et redémarrage") );
-      LittleFS.remove(F("/config.json"));
-      saveRebootCause(EVT_BOOT_CONFIG);
-      delay(50);
-      ESP.restart();
-    }
   }
-  else
+
+  if ( ( configResult == CONFIG_NOMEMORY ) || ( backupResult == CONFIG_NOMEMORY ) ) {
+    // Manque de mémoire : les fichiers ne sont pas en cause, redémarrage sans rien effacer
+    logSerial ( F("[ESP]"), F("Mémoire insuffisante pour lire la configuration, redémarrage") );
+    saveRebootCause ( EVT_BOOT_CONFIG_MEM );
+    delay(50);
+    ESP.restart();
+  }
+  else if ( APmode && ( configResult == CONFIG_ABSENT ) && ( backupResult == CONFIG_ABSENT ) )
     logSerial ( F("[ESP]"), F("Fichier de configuration absent, démarrage en mode AP") );
+  else if ( APmode ) {
+    // Contenu incorrect, sans copie de secours valide : effacement et redémarrage en mode AP
+    logSerial ( F("[ESP]"), F("Fichier de configuration incorrect, effacement et redémarrage") );
+    LittleFS.remove ( "/config.json" );
+    LittleFS.remove ( "/config.bak" );
+    saveRebootCause ( EVT_BOOT_CONFIG );
+    delay(50);
+    ESP.restart();
+  }
 
   delay(5);
 
@@ -494,7 +525,7 @@ AsyncWiFiManager  wifiManager(&webServer, &dnsServer);
 
   // Sauvegarde de la configuration MaxPV! si nécessaire
   if (shouldSaveConfig) {
-    configWrite();
+    saveConfig();
     logSerial ( F("[ESP]"), F("Configuration sauvegardée") );
     shouldSaveConfig = false;
   }
@@ -676,7 +707,7 @@ void loop()
   // ***   Actions sur Flag   ***
 
   if (shouldSaveConfig) {
-    configWrite();
+    saveConfig();
     shouldSaveConfig = false;
   }
 
@@ -759,32 +790,38 @@ void setTsTasks (void) {
 
 ///////////////////////////////////////////////////////////////////
 // Gestion de la configuration de MaxPV!                         //
-// bool configRead(const String& configString)                   //
-// void configWrite(void)                                        //
+// byte configApply(JsonDocument&, DeserializationError)         //
+// byte configRead(const String& configString)                   //
+// byte configReadFile(const char* path)                         //
+// void configToJson(JsonDocument& jsonConfig)                   //
+// bool configWrite(void)                                        //
+// bool publicConfigJson(String& json)                           //
+//                                                               //
+// config.json est remplacé par renommage d'un fichier complet   //
+// (config.tmp) : une coupure pendant l'écriture ne le corrompt  //
+// pas. La configuration valide précédente est conservée dans    //
+// config.bak, utilisée au démarrage si config.json est absent   //
+// ou illisible.                                                 //
 ///////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////
-// Lecture de la configuration à partir d'une chaîne             //
-// de caractères en JSON                                         //
-// Fonction utilisée au démarrage initial et lorsque             //
-// la configuration est modifiée via le site Web (cf. Handlers)  //
+// Application d'une configuration JSON déjà analysée            //
+// Rien n'est appliqué si la lecture a échoué : CONFIG_NOMEMORY  //
+// pour un manque de mémoire (la configuration n'est pas en      //
+// cause), CONFIG_INVALID pour un contenu incorrect.             //
 // Si une clef n'est pas présente dans le fichier,               //
 // on garde la valeur présente dans la variable en mémoire       //
 ///////////////////////////////////////////////////////////////////
 
-bool configRead(const String& configString)
+byte configApply(JsonDocument& jsonConfig, DeserializationError error)
 {
-  if (configString != "")
-  {
-    // buffer pour manipuler le fichier de configuration de MaxPV!
-    JsonDocument jsonConfig;
-    
-    DeserializationError error = deserializeJson(jsonConfig, configString);
-    if (!error)
-    {
-      if (!jsonConfig["ip"].isNull())   // Il faut au moins que l'IP soit présente pour que le fichier soit considéré comme valide
+  if ( ( error == DeserializationError::NoMemory ) || jsonConfig.overflowed() ) return CONFIG_NOMEMORY;
+  // JSON invalide, incomplet (écriture interrompue), vide ou trop imbriqué
+  if ( error ) return CONFIG_INVALID;
+  // Il faut au moins que l'IP soit présente pour que le fichier soit considéré comme valide
+  if ( jsonConfig["ip"].isNull() ) return CONFIG_INVALID;
       {
-                                                          static_ip = jsonConfig["ip"].as<String>();
+static_ip = jsonConfig["ip"].as<String>();
         if (!jsonConfig["gateway"].isNull())            static_gw = jsonConfig["gateway"].as<String>(); else shouldSaveConfig = true;
         if (!jsonConfig["subnet"].isNull())             static_sn = jsonConfig["subnet"].as<String>(); else shouldSaveConfig = true;
         if (!jsonConfig["dns1"].isNull())               static_dns1 = jsonConfig["dns1"].as<String>(); else shouldSaveConfig = true;
@@ -829,24 +866,43 @@ bool configRead(const String& configString)
         if ( relayPlusMin <= 5)  relayPlusMin = 5;
         if ( relayPlusMax <= relayPlusMin)  relayPlusMax = relayPlusMin + 5;
       }
-      else return false;
-    }
-    else return false;
-  }
-  else return false;
-  return true;
+  return CONFIG_OK;
 }
 
 ///////////////////////////////////////////////////////////////////
-// Ecriture de la configuration courante en JSON                 //
-// directement dans le fichier config.json                       //
+// Lecture de la configuration à partir d'une chaîne JSON        //
+// (configuration envoyée par le site Web, cf. Handlers)         //
 ///////////////////////////////////////////////////////////////////
 
-void configWrite(void)
+byte configRead(const String& configString)
 {
-  // buffer pour manipuler le fichier de configuration de MaxPV!
+  if ( configString.length() == 0 ) return CONFIG_INVALID;
   JsonDocument jsonConfig;
+  DeserializationError error = deserializeJson ( jsonConfig, configString );
+  return configApply ( jsonConfig, error );
+}
 
+///////////////////////////////////////////////////////////////////
+// Lecture de la configuration dans un fichier du filesystem     //
+///////////////////////////////////////////////////////////////////
+
+byte configReadFile(const char* path)
+{
+  if ( !LittleFS.exists ( path ) ) return CONFIG_ABSENT;
+  File configFile = LittleFS.open ( path, "r" );
+  if ( !configFile ) return CONFIG_INVALID;
+  JsonDocument jsonConfig;
+  DeserializationError error = deserializeJson ( jsonConfig, configFile );
+  configFile.close();
+  return configApply ( jsonConfig, error );
+}
+
+///////////////////////////////////////////////////////////////////
+// Configuration courante en JSON                                //
+///////////////////////////////////////////////////////////////////
+
+void configToJson(JsonDocument& jsonConfig)
+{
   jsonConfig["ip"] = static_ip;
   jsonConfig["gateway"] = static_gw;
   jsonConfig["subnet"] = static_sn;
@@ -878,11 +934,57 @@ void configWrite(void)
   jsonConfig["RelayPlus_active"] = relayPlusActive;
   jsonConfig["max_temp"] = maxTemp;
   jsonConfig["temp_limit_active"] = tempLimitActive;
+}
 
+///////////////////////////////////////////////////////////////////
+// Enregistrement de la configuration courante dans config.json  //
+// 1. sérialisation complète dans config.tmp, contrôlée          //
+// 2. config.json, s'il est valide, devient config.bak           //
+// 3. config.tmp est renommé en config.json                      //
+// A chaque instant, config.json ou config.bak est complet.      //
+// Retourne false si la configuration n'a pas été enregistrée    //
+///////////////////////////////////////////////////////////////////
 
-  File configFile = LittleFS.open(F("/config.json"), "w");
-  serializeJson(jsonConfig, configFile);
+bool configWrite(void)
+{
+  JsonDocument jsonConfig;
+  configToJson ( jsonConfig );
+  // Mémoire insuffisante : document incomplet, config.json n'est pas touché
+  if ( jsonConfig.overflowed() ) return false;
+
+  File configFile = LittleFS.open ( "/config.tmp", "w" );
+  if ( !configFile ) return false;
+  size_t written = serializeJson ( jsonConfig, configFile );
   configFile.close();
+  if ( ( written == 0 ) || ( written != measureJson ( jsonConfig ) ) ) {
+    LittleFS.remove ( "/config.tmp" );
+    return false;
+  }
+
+  // La configuration valide actuelle devient la copie de secours. Un config.json illisible
+  // (configuration lue dans config.bak) n'écrase pas la copie de secours
+  if ( configFileValid && LittleFS.exists ( "/config.json" ) ) {
+    LittleFS.remove ( "/config.bak" );
+    if ( !LittleFS.rename ( "/config.json", "/config.bak" ) ) {
+      LittleFS.remove ( "/config.tmp" );
+      return false;
+    }
+  }
+  if ( !LittleFS.rename ( "/config.tmp", "/config.json" ) ) return false;
+  configFileValid = true;
+  return true;
+}
+
+///////////////////////////////////////////////////////////////////
+// Enregistrement demandé par shouldSaveConfig, avec trace dans  //
+// le journal en cas d'échec                                     //
+///////////////////////////////////////////////////////////////////
+
+void saveConfig(void)
+{
+  if ( configWrite() ) return;
+  logMqtt ( F("[ESP]"), F("Echec de l'enregistrement de la configuration") );
+  logEvent ( EVT_CONFIG, EVT_CONFIG_WRITE_ERROR, 0 );
 }
 
 ///////////////////////////////////////////////////////////////////
@@ -900,24 +1002,23 @@ void updateWebHA1(void)
 }
 
 ///////////////////////////////////////////////////////////////////
-// Configuration en JSON sans les mots de passe (MQTT et Web)    //
-// pour la consultation et l'export : les clés absentes sont     //
-// conservées par configRead() lors d'une restauration           //
+// Configuration courante en JSON sans les mots de passe         //
+// (MQTT et Web) pour la consultation et l'export : les clés     //
+// absentes sont conservées par configRead() lors d'une          //
+// restauration. Retourne false plutôt qu'un JSON partiel en cas //
+// de manque de mémoire                                          //
 ///////////////////////////////////////////////////////////////////
 
-String publicConfigJson(void)
+bool publicConfigJson(String& json)
 {
   JsonDocument jsonConfig;
-  String json;
-  File configFile = LittleFS.open(F("/config.json"), "r");
-  if (configFile) {
-    deserializeJson(jsonConfig, configFile);
-    configFile.close();
-  }
-  jsonConfig.remove("mqtt_pass");
-  jsonConfig.remove("web_pass");
-  serializeJson(jsonConfig, json);
-  return json;
+  configToJson ( jsonConfig );
+  jsonConfig.remove ( "mqtt_pass" );
+  jsonConfig.remove ( "web_pass" );
+  if ( jsonConfig.overflowed() ) return false;
+  json = String();
+  size_t written = serializeJson ( jsonConfig, json );
+  return ( written > 0 ) && ( written == measureJson ( jsonConfig ) ) && ( json.length() == written );
 }
 
 
@@ -1227,6 +1328,7 @@ const __FlashStringHelper* eventTypeKey(byte type)
     case EVT_MQTT_LOST:     return F("mqtt_lost");
     case EVT_MQTT_OK:       return F("mqtt_ok");
     case EVT_REBOOT:        return F("reboot");
+    case EVT_CONFIG:        return F("config");
     default:                return F("unknown");
   }
 }
@@ -1274,6 +1376,7 @@ const __FlashStringHelper* bootCauseKey(byte cause)
     case EVT_BOOT_FS:             return F("filesystem_error");
     case EVT_BOOT_OTA:            return F("ota_update");
     case EVT_BOOT_WIFI:           return F("wifi_timeout");
+    case EVT_BOOT_CONFIG_MEM:     return F("config_nomemory");
     default:                      return F("unknown");
   }
 }
@@ -1293,6 +1396,7 @@ const __FlashStringHelper* bootCauseText(byte cause)
     case EVT_BOOT_FS:             return F("erreur de filesystem");
     case EVT_BOOT_OTA:            return F("mise à jour du firmware");
     case EVT_BOOT_WIFI:           return F("absence prolongée du Wifi");
+    case EVT_BOOT_CONFIG_MEM:     return F("mémoire insuffisante pour lire la configuration");
     default:                      return F("inconnue");
   }
 }
@@ -1428,6 +1532,13 @@ String eventMessage(const eventRecord& e)
       msg = F("Redémarrage de MaxPV! : ");
       msg += bootCauseText(e.detail);
       break;
+    case EVT_CONFIG:
+      if ( e.detail == EVT_CONFIG_WRITE_ERROR ) msg = F("Echec de l'enregistrement de la configuration");
+      else {
+        msg = F("Configuration restaurée depuis la copie de secours : config.json ");
+        msg += ( e.detail == EVT_CONFIG_BACKUP_ABSENT ) ? F("absent") : F("illisible");
+      }
+      break;
     default:
       msg = F("Evénement inconnu");
   }
@@ -1466,6 +1577,11 @@ String eventToJson(const eventRecord& e)
     case EVT_SSR_MODE:      json += eventSourceKey(e.detail); break;
     case EVT_WIFI_LOST:     json += e.detail; break;
     case EVT_MQTT_LOST:     json += mqttReasonKey(e.detail); break;
+    case EVT_CONFIG:
+      if ( e.detail == EVT_CONFIG_BACKUP_ABSENT )       json += F("backup_config_absent");
+      else if ( e.detail == EVT_CONFIG_BACKUP_INVALID ) json += F("backup_config_invalid");
+      else                                              json += F("write_error");
+      break;
     default:                break;
   }
   json += F("\",\"value\":");
@@ -3115,7 +3231,12 @@ void setWebHandlers (void) {
   webServer.on("/DLconfig", HTTP_GET, [](AsyncWebServerRequest * request)
   {
     if ( !checkWebAuth ( request ) ) return;
-    AsyncWebServerResponse *response = request->beginResponse ( 200, "application/json", publicConfigJson() );
+    String json;
+    if ( !publicConfigJson ( json ) ) {
+      request->send ( 503, "text/plain", F("Not enough memory") );
+      return;
+    }
+    AsyncWebServerResponse *response = request->beginResponse ( 200, "application/json", json );
     response->addHeader ( F("Content-Disposition"), F("attachment; filename=\"config.json\"") );
     request->send ( response );
   });
@@ -3173,8 +3294,11 @@ void setWebHandlers (void) {
   webServer.on("/api/get", HTTP_GET, [](AsyncWebServerRequest * request)
   {
     String response = "";
-    if ( request->hasParam ( F("configmaxpv") ) )
-      request->send ( 200, "application/json", publicConfigJson() );
+    if ( request->hasParam ( F("configmaxpv") ) ) {
+      String json;
+      if ( publicConfigJson ( json ) ) request->send ( 200, "application/json", json );
+      else request->send ( 503, "text/plain", F("Not enough memory") );
+    }
     else if ( request->hasParam ( F("versionweb") ) )
       request->send ( 200, "text/plain", F(WEB_VERSION) );
     else {
@@ -3220,6 +3344,7 @@ void setWebHandlers (void) {
   webServer.on("/api/set", HTTP_POST, [](AsyncWebServerRequest * request)
   {
     if ( !checkWebChange ( request ) ) return;
+    int code = 200;
     String response = F("Request successfully processed");
     String mystring = "";
     if ( ( request->hasArg ( F("param") ) ) && ( request->hasArg ( F("value") ) )
@@ -3251,10 +3376,14 @@ void setWebHandlers (void) {
     }
     else if ( ( request->hasArg ( F("configmaxpv") ) ) && ( request->hasArg ( F("value") ) ) ) {
       mystring = request->arg(F("value"));
-      if (configRead(mystring)) shouldSaveConfig = true;
+      byte result = configRead ( mystring );
+      if ( result == CONFIG_OK ) shouldSaveConfig = true;
+      // Configuration refusée : rien n'a été appliqué
+      else if ( result == CONFIG_NOMEMORY ) { code = 503; response = F("Not enough memory"); }
+      else { code = 400; response = F("Invalid configuration"); }
     }
     else response = F("Bad request or request unknown");
-    request->send ( 200, "text/plain", response );
+    request->send ( code, "text/plain", response );
   });
 
   delay(5);

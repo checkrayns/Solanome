@@ -187,6 +187,12 @@ Les pins d'entrée-sortie de l'Arduino Nano sont configurables dans le code EcoP
 La pin D9 est utilisé pour la sonde de température 1-Wire depuis la version 3.60.
 
 # Versions
+### **V 3.70** - 01/11/2026
+* Configuration protégée contre les coupures de courant : le fichier de configuration est écrit en entier dans un fichier temporaire, contrôlé, puis remplacé d'un coup. La configuration précédente est conservée en copie de secours (*config.bak*).
+* Au démarrage, si la configuration est absente ou illisible, MaxPV! utilise la copie de secours (événement dans le journal). La configuration n'est effacée que si les deux fichiers ont un contenu incorrect ; en cas de manque de mémoire, MaxPV! redémarre sans rien effacer.
+* Une configuration incorrecte envoyée par l'interface ou l'API est refusée sans être appliquée ; la consultation et l'export de la configuration renvoient une erreur plutôt qu'un fichier incomplet.
+* Mise à jour de la librairie ArduinoJson en version 7, plateforme PlatformIO figée (espressif8266 4.2.1), librairie NTPClient retirée (inutilisée).
+* Versions : MaxPV! 3.70, site Web 3.70, EcoPV 3.60.
 ### **V 3.69** - 01/11/2026
 * Sécurité : protection de l'authentification contre le rejeu. MaxPV! émet ses propres défis (valables 5 minutes), vérifie le compteur de chaque requête et l'adresse signée : une requête authentifiée interceptée ne peut plus être rejouée, ni sur la même adresse ni sur une autre.
 * Passage aux bibliothèques maintenues ESP32Async : ESPAsyncWebServer 3.12.1 et ESPAsyncTCP 2.0.0 (dossier *Librairies IDE*).
