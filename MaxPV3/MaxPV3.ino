@@ -2565,7 +2565,145 @@ void sendWebFile (AsyncWebServerRequest * request, const webFile* file)
   }
   AsyncWebServerResponse *response = request->beginResponse_P ( 200, file->mime, file->data, file->len );
   response->addHeader ( F("Content-Encoding"), F("gzip") );
+  // Fichier appelé avec la version du site (app.css?v=3.65) : il ne change qu'avec le firmware
+  if ( request->hasParam ( F("v") ) ) response->addHeader ( F("Cache-Control"), F("max-age=31536000, immutable") );
   request->send ( response );
+}
+
+
+///////////////////////////////////////////////////////////////////
+// Etats du SSR et du relais tels que présentés par l'API        //
+///////////////////////////////////////////////////////////////////
+
+const __FlashStringHelper* ssrStateText (void)
+{
+  if ( ecoPVStats[TRIAC_MODE].toInt() == STOP )             return F("STOP");
+  if ( ecoPVStats[TRIAC_MODE].toInt() == FORCE )            return F("FORCE");
+  if ( ecoPVStats[TRIAC_MODE].toInt() == AUTOM ) {
+    if ( ecoPVStats[STATUS_BYTE].toInt() & B00000010 )      return F("MAX");
+    if ( ecoPVStats[STATUS_BYTE].toInt() & B00000001 )      return F("ON");
+    return F("OFF");
+  }
+  return F("");
+}
+
+
+const __FlashStringHelper* relayStateText (void)
+{
+  if ( ecoPVStats[RELAY_MODE].toInt() == STOP )             return F("STOP");
+  if ( ecoPVStats[RELAY_MODE].toInt() == FORCE )            return F("FORCE");
+  if ( ecoPVStats[STATUS_BYTE].toInt() & B00000100 )        return F("ON");
+  return F("OFF");
+}
+
+
+const __FlashStringHelper* modeText (int opMode)
+{
+  if ( opMode == STOP )   return F("STOP");
+  if ( opMode == FORCE )  return F("FORCE");
+  return F("AUTO");
+}
+
+///////////////////////////////////////////////////////////////////
+// Etat complet de MaxPV! en JSON pour l'interface Web           //
+// (/api/status) : une seule requête au lieu d'une par valeur    //
+///////////////////////////////////////////////////////////////////
+
+// Ajoute une valeur numérique transmise par EcoPV, ou null si elle n'est pas encore connue
+void jsonNumber (String& json, const __FlashStringHelper* key, const String& value)
+{
+  json += '"';
+  json += key;
+  json += F("\":");
+  if ( ( value.length() > 0 ) && ( isDigit ( value[0] ) || ( value[0] == '-' ) ) ) json += value;
+  else json += F("null");
+  json += ',';
+}
+
+
+// Ajoute une énergie journalière en kWh : index courant - index de début de journée
+void jsonDayEnergy (String& json, const __FlashStringHelper* key, int indexNow, int indexDay)
+{
+  json += '"';
+  json += key;
+  json += F("\":");
+  if ( ( ecoPVStats[indexNow].length() > 0 ) && ( ecoPVStats[indexDay].length() > 0 ) )
+    json += String ( ecoPVStats[indexNow].toFloat() - ecoPVStats[indexDay].toFloat(), 3 );
+  else json += F("null");
+  json += ',';
+}
+
+
+String statusJson (void)
+{
+  String json;
+  json.reserve(900);
+  time_t timestamp = time(NULL);
+
+  json = F("{\"time\":");
+  json += ( timestamp > TIME_REF ) ? uint32_t (timestamp) : 0;
+  json += F(",\"uptime\":");
+  json += uptimeSeconds();
+  json += F(",\"ecopv\":");
+  json += contactEcoPV ? F("true") : F("false");
+  json += F(",\"rssi\":");
+  json += WiFi.RSSI();
+  json += F(",\"mqtt\":\"");
+  if ( mqttActive != ON )               json += F("off");
+  else if ( mqttClient.connected() )    json += F("connected");
+  else                                  json += F("disconnected");
+  json += F("\",\"lastevent\":");
+  json += eventCounter;
+  json += ',';
+
+  jsonNumber ( json, F("vrms"),     ecoPVStats[V_RMS] );
+  jsonNumber ( json, F("irms"),     ecoPVStats[I_RMS] );
+  jsonNumber ( json, F("cosphi"),   ecoPVStats[COS_PHI] );
+  jsonNumber ( json, F("papp"),     ecoPVStats[P_APP] );
+  jsonNumber ( json, F("pact"),     ecoPVStats[P_ACT] );
+  jsonNumber ( json, F("prouted"),  ecoPVStats[P_ROUTED] );
+  jsonNumber ( json, F("pimport"),  ecoPVStats[P_IMP] );
+  jsonNumber ( json, F("pexport"),  ecoPVStats[P_EXP] );
+  jsonNumber ( json, F("pprod"),    ecoPVStats[P_IMPULSION] );
+  // EcoPV transmet -99 en l'absence de sonde ou si la température est invalide
+  jsonNumber ( json, F("temp"),     ( ecoPVStats[TEMP_ECS].toInt() == -99 ) ? String() : ecoPVStats[TEMP_ECS] );
+  jsonNumber ( json, F("presistance"), ecoPVConfig[P_RESISTANCE] );
+
+  json += F("\"day\":{");
+  jsonDayEnergy ( json, F("routed"),  INDEX_ROUTED,    INDEX_ROUTED_J );
+  jsonDayEnergy ( json, F("import"),  INDEX_IMPORT,    INDEX_IMPORT_J );
+  jsonDayEnergy ( json, F("export"),  INDEX_EXPORT,    INDEX_EXPORT_J );
+  jsonDayEnergy ( json, F("prod"),    INDEX_IMPULSION, INDEX_IMPULSION_J );
+  json += F("\"relay\":");
+  if ( ( ecoPVStats[INDEX_RELAY].length() > 0 ) && ( ecoPVStats[INDEX_RELAY_J].length() > 0 ) )
+    json += ecoPVStats[INDEX_RELAY].toInt() - ecoPVStats[INDEX_RELAY_J].toInt();
+  else json += F("null");
+  json += F("},");
+
+  json += F("\"ssr\":{\"mode\":\"");
+  json += modeText ( ecoPVStats[TRIAC_MODE].toInt() );
+  json += F("\",\"state\":\"");
+  json += ssrStateText();
+  json += F("\"},\"relay\":{\"mode\":\"");
+  json += modeText ( ecoPVStats[RELAY_MODE].toInt() );
+  json += F("\",\"state\":\"");
+  json += relayStateText();
+  json += F("\",\"relayplus\":");
+  json += ( relaisPlusIndex == -1 ) ? F("false") : F("true");
+  json += F("},\"boost\":{\"on\":");
+  json += ( boostTime == -1 ) ? F("false") : F("true");
+  json += F(",\"remaining\":");
+  json += ( boostTime < 0 ) ? 0 : boostTime;
+  json += F(",\"duration\":");
+  json += boostDuration;
+  json += F("},\"templimit\":");
+  if ( tempLimitActive == ON ) json += maxTemp;
+  else json += F("null");
+
+  json += F(",\"version\":{\"maxpv\":\"" MAXPV_VERSION "\",\"web\":\"" WEB_VERSION "\",\"ecopv\":\"");
+  json += ecoPVConfig[ECOPV_VERSION];
+  json += F("\"}}");
+  return json;
 }
 
 
@@ -2604,7 +2742,7 @@ void setWebHandlers (void) {
   // Le filesystem ne contient plus que la configuration de MaxPV!
   webServer.on("/", HTTP_ANY, [](AsyncWebServerRequest * request)
   {
-    sendWebFile ( request, findWebFile ( "/main.html" ) );
+    sendWebFile ( request, findWebFile ( "/dashboard.html" ) );
   });
 
   for (size_t i = 0; i < WEB_FILES_COUNT; i++) {
@@ -2702,6 +2840,13 @@ void setWebHandlers (void) {
     request->send ( 200, "text/plain", response );
   });
 
+  webServer.on("/api/status", HTTP_GET, [](AsyncWebServerRequest * request)
+  {
+    AsyncWebServerResponse *response = request->beginResponse ( 200, "application/json", statusJson() );
+    response->addHeader ( F("Cache-Control"), F("no-store") );
+    request->send ( response );
+  });
+
   webServer.on("/api/get", HTTP_GET, [](AsyncWebServerRequest * request)
   {
     String response = "";
@@ -2722,21 +2867,10 @@ void setWebHandlers (void) {
         response = ecoPVConfig [0];
       else if ( request->hasParam ( F("versionmaxpv") ) )
         response = F(MAXPV_VERSION);
-      else if ( request->hasParam ( F("relaystate") ) ) {
-        if ( ecoPVStats[RELAY_MODE].toInt() == STOP )           response = F("STOP");
-        else if ( ecoPVStats[RELAY_MODE].toInt() == FORCE )     response = F("FORCE");
-        else if ( ecoPVStats[STATUS_BYTE].toInt() & B00000100 ) response = F("ON");
-        else response = F("OFF");
-      }
-      else if ( request->hasParam ( F("ssrstate") ) ) {
-        if ( ecoPVStats[TRIAC_MODE].toInt() == STOP )             response = F("STOP");
-        else if ( ecoPVStats[TRIAC_MODE].toInt() == FORCE )       response = F("FORCE");
-        else if ( ecoPVStats[TRIAC_MODE].toInt() == AUTOM ) {
-          if ( ecoPVStats[STATUS_BYTE].toInt() & B00000010 )      response = F("MAX");
-          else if ( ecoPVStats[STATUS_BYTE].toInt() & B00000001 ) response = F("ON");
-          else response = F("OFF");
-        }
-      }
+      else if ( request->hasParam ( F("relaystate") ) )
+        response = relayStateText();
+      else if ( request->hasParam ( F("ssrstate") ) )
+        response = ssrStateText();
       else if ( request->hasParam ( F("booststate") ) ) {
         if (boostTime == -1) response = F("OFF");
           else response = F("ON");

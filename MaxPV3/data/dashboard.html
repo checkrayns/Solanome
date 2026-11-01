@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="fr">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f3f5f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0e1317" media="(prefers-color-scheme: dark)">
+  <title>MaxPV! Accueil</title>
+  <link rel="icon" href="favicon.ico">
+  <link href="app.css?v=__WEBVER__" rel="stylesheet">
+</head>
+
+<body>
+
+  <main class="content">
+
+    <header class="topbar">
+      <div>
+        <h1>Tableau de bord</h1>
+        <p class="sub" id="clock">&nbsp;</p>
+      </div>
+      <span class="pill" id="link" role="status">Connexion…</span>
+    </header>
+
+    <div id="banner"></div>
+
+    <section class="grid">
+
+      <!-- Réseau : import ou export, l'information principale -->
+      <article class="card span-2">
+        <div class="card-head">
+          <h2 class="card-title">Réseau</h2>
+          <span class="pill" id="grid-dir">—</span>
+        </div>
+        <div class="metric" id="grid-power">—</div>
+        <div class="metric-sub" id="grid-sub">&nbsp;</div>
+        <div class="tiles tiles-3">
+          <div class="tile"><div class="label">Production</div><div class="value" id="prod">—</div></div>
+          <div class="tile"><div class="label">Routage ECS</div><div class="value" id="routed-tile">—</div></div>
+          <div class="tile"><div class="label">Puissance active</div><div class="value" id="pact">—</div></div>
+        </div>
+      </article>
+
+      <!-- Routage vers le chauffe-eau -->
+      <article class="card">
+        <div class="card-head">
+          <h2 class="card-title">Routage ECS</h2>
+          <span class="pill" id="ssr-state">—</span>
+        </div>
+        <div class="metric" id="routed">—</div>
+        <div class="bar" aria-hidden="true"><span id="routed-bar"></span></div>
+        <div class="metric-sub" id="routed-sub">&nbsp;</div>
+      </article>
+
+      <!-- Température du chauffe-eau -->
+      <article class="card">
+        <div class="card-head">
+          <h2 class="card-title">Eau chaude</h2>
+        </div>
+        <div class="metric" id="temp">—</div>
+        <div class="bar" aria-hidden="true"><span id="temp-bar"></span></div>
+        <div class="metric-sub" id="temp-sub">&nbsp;</div>
+      </article>
+
+      <!-- Commandes -->
+      <article class="card span-2 rows-2" aria-labelledby="controls-title">
+        <div class="card-head">
+          <h2 class="card-title" id="controls-title">Commandes</h2>
+        </div>
+
+        <div class="control">
+          <div class="control-head">
+            <h3>Boost</h3>
+            <span class="pill" id="boost-state">—</span>
+          </div>
+          <button class="btn primary block" type="button" id="boost-btn">—</button>
+          <div class="bar" id="boost-bar-wrap" hidden><span id="boost-bar"></span></div>
+          <div class="control-note" id="boost-note"></div>
+        </div>
+
+        <div class="control">
+          <div class="control-head">
+            <h3>SSR (chauffe-eau)</h3>
+            <span class="pill" id="ssr-state-2">—</span>
+          </div>
+          <div class="seg" role="group" aria-label="Mode du SSR" id="ssr-seg">
+            <button type="button" data-mode="stop">Arrêt</button>
+            <button type="button" data-mode="auto">Auto</button>
+            <button type="button" data-mode="force">Forcé</button>
+          </div>
+          <div class="control-note" id="ssr-note"></div>
+        </div>
+
+        <div class="control">
+          <div class="control-head">
+            <h3>Relais secondaire</h3>
+            <span class="pill" id="relay-state">—</span>
+          </div>
+          <div class="seg" role="group" aria-label="Mode du relais" id="relay-seg">
+            <button type="button" data-mode="stop">Arrêt</button>
+            <button type="button" data-mode="auto">Auto</button>
+            <button type="button" data-mode="force">Forcé</button>
+          </div>
+          <div class="control-note" id="relay-note"></div>
+        </div>
+      </article>
+
+      <!-- Bilan de la journée -->
+      <article class="card">
+        <div class="card-head">
+          <h2 class="card-title">Aujourd'hui</h2>
+        </div>
+        <ul class="list">
+          <li><span class="label">Energie routée</span><span class="value" id="day-routed">—</span></li>
+          <li><span class="label">Energie produite</span><span class="value" id="day-prod">—</span></li>
+          <li><span class="label">Energie importée</span><span class="value" id="day-import">—</span></li>
+          <li><span class="label">Energie exportée</span><span class="value" id="day-export">—</span></li>
+          <li><span class="label">Relais en marche</span><span class="value" id="day-relay">—</span></li>
+        </ul>
+      </article>
+
+      <!-- Mesures électriques -->
+      <article class="card">
+        <div class="card-head">
+          <h2 class="card-title">Mesures</h2>
+        </div>
+        <ul class="list">
+          <li><span class="label">Tension</span><span class="value" id="vrms">—</span></li>
+          <li><span class="label">Courant</span><span class="value" id="irms">—</span></li>
+          <li><span class="label">Puissance apparente</span><span class="value" id="papp">—</span></li>
+          <li><span class="label">Facteur de puissance</span><span class="value" id="cosphi">—</span></li>
+        </ul>
+      </article>
+
+      <!-- Derniers événements du journal -->
+      <article class="card span-2">
+        <div class="card-head">
+          <h2 class="card-title">Derniers événements</h2>
+          <a href="events.html">Tout le journal</a>
+        </div>
+        <ul class="list events" id="events"><li class="empty">Chargement…</li></ul>
+      </article>
+
+    </section>
+
+    <footer class="foot" id="foot"></footer>
+
+  </main>
+
+  <script src="app.js?v=__WEBVER__"></script>
+  <script>
+
+    const $ = (id) => document.getElementById(id);
+    const { fmt } = MaxPV;
+
+    const SSR_STATES = {
+      ON:    ["Chauffe", "hot"],
+      MAX:   ["Pleine puissance", "hot"],
+      OFF:   ["En attente de surplus", ""],
+      STOP:  ["Arrêté", "warn"],
+      FORCE: ["Forcé", "hot"]
+    };
+
+    const RELAY_STATES = {
+      ON:    ["Activé", "ok"],
+      OFF:   ["Désactivé", ""],
+      STOP:  ["Arrêté", "warn"],
+      FORCE: ["Forcé", "hot"]
+    };
+
+    function setPill(el, text, kind) {
+      el.textContent = text;
+      el.className = "pill" + (kind ? " " + kind : "");
+    }
+
+    function setBar(el, ratio) {
+      el.style.width = (Math.max(0, Math.min(1, ratio || 0)) * 100).toFixed(1) + "%";
+    }
+
+    // ---------- Commandes ----------
+
+    // Un mode demandé reste affiché tant qu'EcoPV ne l'a pas confirmé, au plus 6 secondes
+    const pending = { ssr: null, relay: null, boost: null };
+
+    function showError(e) {
+      const banner = $("banner");
+      banner.innerHTML = "";
+      const div = document.createElement("div");
+      div.className = "banner warn";
+      div.textContent = "La commande n'a pas abouti" + (e && e.message ? " : " + e.message : "") + ".";
+      banner.appendChild(div);
+      setTimeout(() => { if (banner.contains(div)) div.remove(); }, 6000);
+    }
+
+    function runCommand(kind, value, action) {
+      pending[kind] = { value: value, until: Date.now() + 6000 };
+      render();
+      action().catch((e) => { pending[kind] = null; render(); showError(e); });
+    }
+
+    $("boost-btn").addEventListener("click", () => {
+      const on = !(last && last.boost.on);
+      runCommand("boost", on, () => MaxPV.commands.boost(on));
+    });
+
+    ["ssr", "relay"].forEach((kind) => {
+      $(kind + "-seg").addEventListener("click", (e) => {
+        const button = e.target.closest("button[data-mode]");
+        if (!button || button.getAttribute("aria-pressed") === "true") return;
+        const mode = button.dataset.mode;
+        runCommand(kind, mode.toUpperCase(), () => MaxPV.commands[kind](mode));
+      });
+    });
+
+    // ---------- Affichage de l'état ----------
+
+    let last = null;
+    let link = "ok";
+
+    function pendingValue(kind, actual) {
+      const p = pending[kind];
+      if (!p) return null;
+      if ((p.value === actual) || (Date.now() > p.until)) { pending[kind] = null; return null; }
+      return p.value;
+    }
+
+    function renderLink() {
+      if (link === "demo")                 setPill($("link"), "Démo", "info");
+      else if (link === "lost")            setPill($("link"), "Connexion perdue", "bad");
+      else if (last && !last.ecopv)        setPill($("link"), "EcoPV ne répond pas", "warn");
+      else if (last)                       setPill($("link"), "En ligne", "ok");
+    }
+
+    function renderGrid(s) {
+      const imp = s.pimport || 0, exp = s.pexport || 0;
+      if (exp > imp) {
+        $("grid-power").innerHTML = fmt.power(exp).replace(/ (k?W)$/, "<small>$1</small>");
+        $("grid-power").className = "metric is-export";
+        setPill($("grid-dir"), "Export", "ok");
+        $("grid-sub").textContent = "Surplus envoyé sur le réseau";
+      }
+      else if (imp > 0) {
+        $("grid-power").innerHTML = fmt.power(imp).replace(/ (k?W)$/, "<small>$1</small>");
+        $("grid-power").className = "metric is-import";
+        setPill($("grid-dir"), "Import", "bad");
+        $("grid-sub").textContent = "Electricité achetée au réseau";
+      }
+      else {
+        $("grid-power").innerHTML = "0<small>W</small>";
+        $("grid-power").className = "metric";
+        setPill($("grid-dir"), "Equilibre", "");
+        $("grid-sub").textContent = "Ni import ni export";
+      }
+      $("prod").textContent = fmt.power(s.pprod);
+      $("routed-tile").textContent = fmt.power(s.prouted);
+      $("pact").textContent = fmt.power(s.pact);
+    }
+
+    function renderRouting(s) {
+      $("routed").innerHTML = fmt.power(s.prouted).replace(/ (k?W)$/, "<small>$1</small>");
+      const max = Number(s.presistance) || 0;
+      setBar($("routed-bar"), max > 0 ? s.prouted / max : 0);
+      $("routed-sub").textContent = max > 0
+        ? Math.round(100 * (s.prouted || 0) / max) + " % de la résistance (" + fmt.power(max) + ")"
+        : " ";
+      const state = SSR_STATES[s.ssr.state] || [s.ssr.state || "—", ""];
+      setPill($("ssr-state"), s.boost.on ? "Boost" : state[0], s.boost.on ? "hot" : state[1]);
+    }
+
+    function renderTemp(s) {
+      if (!fmt.known(s.temp)) {
+        $("temp").textContent = "—";
+        setBar($("temp-bar"), 0);
+        $("temp-sub").textContent = "Pas de sonde de température";
+        return;
+      }
+      $("temp").innerHTML = fmt.number(s.temp, 0) + "<small>°C</small>";
+      if (fmt.known(s.templimit)) {
+        setBar($("temp-bar"), s.temp / s.templimit);
+        $("temp-sub").textContent = (s.temp >= s.templimit)
+          ? "Limite de " + s.templimit + " °C atteinte : boost bloqué"
+          : "Limite du boost : " + s.templimit + " °C";
+      }
+      else {
+        setBar($("temp-bar"), s.temp / 80);
+        $("temp-sub").textContent = "Pas de limite de température";
+      }
+    }
+
+    function renderSeg(kind, mode) {
+      const wanted = pendingValue(kind, mode);
+      const shown = (wanted || mode || "").toLowerCase();
+      $(kind + "-seg").querySelectorAll("button").forEach((b) => {
+        b.setAttribute("aria-pressed", String(b.dataset.mode === shown));
+        b.disabled = wanted !== null;
+      });
+    }
+
+    function renderControls(s) {
+      // Boost
+      const boostWanted = pendingValue("boost", s.boost.on);
+      const boostOn = boostWanted !== null ? boostWanted : s.boost.on;
+      const btn = $("boost-btn");
+      btn.disabled = boostWanted !== null;
+      btn.textContent = boostOn ? "Arrêter le boost" : "Lancer le boost (" + fmt.duration(s.boost.duration * 60) + ")";
+      btn.className = "btn block" + (boostOn ? "" : " primary");
+      setPill($("boost-state"), s.boost.on ? "En cours" : "Arrêté", s.boost.on ? "hot" : "");
+      $("boost-bar-wrap").hidden = !s.boost.on;
+      if (s.boost.on) {
+        setBar($("boost-bar"), s.boost.remaining / (s.boost.duration * 60));
+        $("boost-note").textContent = "Encore " + fmt.duration(s.boost.remaining);
+      }
+      else if (fmt.known(s.temp) && fmt.known(s.templimit) && s.temp >= s.templimit) {
+        $("boost-note").textContent = "Température limite atteinte : le boost sera refusé.";
+      }
+      else $("boost-note").textContent = "";
+
+      // SSR : pendant un boost, EcoPV alterne FORCE et STOP, le mode affiché n'est pas significatif
+      renderSeg("ssr", s.boost.on ? "" : s.ssr.mode);
+      const ssr = SSR_STATES[s.ssr.state] || [s.ssr.state || "—", ""];
+      setPill($("ssr-state-2"), s.boost.on ? "Boost" : ssr[0], s.boost.on ? "hot" : ssr[1]);
+      $("ssr-note").textContent = s.boost.on ? "Changer de mode arrête le boost en cours." : "";
+
+      // Relais
+      renderSeg("relay", s.relay.mode);
+      const relay = RELAY_STATES[s.relay.state] || [s.relay.state || "—", ""];
+      setPill($("relay-state"), relay[0], relay[1]);
+      $("relay-note").textContent = s.relay.relayplus ? "Relay+ actif : un changement manuel le désactive pour la journée." : "";
+    }
+
+    function renderDay(s) {
+      $("day-routed").textContent = fmt.energy(s.day.routed);
+      $("day-prod").textContent = fmt.energy(s.day.prod);
+      $("day-import").textContent = fmt.energy(s.day.import);
+      $("day-export").textContent = fmt.energy(s.day.export);
+      $("day-relay").textContent = fmt.known(s.day.relay) ? fmt.duration(s.day.relay * 60) : "—";
+      $("vrms").textContent = fmt.number(s.vrms, 1, "V");
+      $("irms").textContent = fmt.number(s.irms, 2, "A");
+      $("papp").textContent = fmt.number(s.papp, 0, "VA");
+      $("cosphi").textContent = fmt.number(s.cosphi, 2);
+    }
+
+    function renderFoot(s) {
+      const parts = [
+        "MaxPV! " + s.version.maxpv,
+        "site " + s.version.web,
+        "EcoPV " + (s.version.ecopv || "—"),
+        "Wifi " + s.rssi + " dBm",
+        "MQTT " + ({ off: "inactif", connected: "connecté", disconnected: "déconnecté" }[s.mqtt] || s.mqtt),
+        "en marche depuis " + fmt.duration(s.uptime)
+      ];
+      const foot = $("foot");
+      foot.innerHTML = "";
+      parts.forEach((p) => { const span = document.createElement("span"); span.textContent = p; foot.appendChild(span); });
+      $("clock").textContent = s.time
+        ? new Date(s.time * 1000).toLocaleString("fr-FR", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })
+        : "Heure non synchronisée";
+    }
+
+    function render() {
+      renderLink();
+      if (!last) return;
+      renderGrid(last);
+      renderRouting(last);
+      renderTemp(last);
+      renderControls(last);
+      renderDay(last);
+      renderFoot(last);
+    }
+
+    // ---------- Derniers événements ----------
+
+    let shownEvent = -1;
+
+    async function loadEvents() {
+      try {
+        const journal = await MaxPV.getJSON("api/events");
+        const list = $("events");
+        list.innerHTML = "";
+        journal.events.slice(0, 5).forEach((event) => {
+          const li = document.createElement("li");
+          const time = document.createElement("time");
+          const msg = document.createElement("span");
+          time.textContent = fmt.eventTime(event);
+          msg.className = "msg";
+          msg.textContent = event.msg;
+          li.append(time, msg);
+          list.appendChild(li);
+        });
+        if (!journal.events.length) list.innerHTML = '<li class="empty">Aucun événement</li>';
+      }
+      catch (e) { /* réessayé au prochain événement */ }
+    }
+
+    // ---------- Mise à jour disponible ----------
+
+    let updateChecked = false;
+
+    async function checkUpdate(s) {
+      if (updateChecked || MaxPV.demo) return;
+      updateChecked = true;
+      try {
+        const response = await fetch("https://raw.githubusercontent.com/checkrayns/MaxPV/main/latest", { cache: "no-store" });
+        const latest = await response.json();
+        if (MaxPV.newerVersion(latest.maxpvver, s.version.maxpv) || MaxPV.newerVersion(latest.webver, s.version.web)) {
+          const div = document.createElement("div");
+          div.className = "banner";
+          div.innerHTML = '<span></span><a href="maj.html">Mettre à jour</a>';
+          div.firstChild.textContent = "MaxPV! " + latest.maxpvver + " est disponible.";
+          $("banner").appendChild(div);
+        }
+      }
+      catch (e) { /* pas d'accès à Internet : pas de vérification */ }
+    }
+
+    MaxPV.onStatus((status, state) => {
+      link = state;
+      if (status) {
+        last = status;
+        if (status.lastevent !== shownEvent) { shownEvent = status.lastevent; loadEvents(); }
+        checkUpdate(status);
+      }
+      render();
+    });
+
+  </script>
+</body>
+
+</html>

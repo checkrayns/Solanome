@@ -77,8 +77,13 @@ def generate_web_files():
         if ext not in MIME_TYPES:
             raise Exception(f"Type MIME inconnu pour {name}")
         with open(os.path.join(WEB_DIR, name), "rb") as f:
-            # mtime=0 pour que le fichier généré ne change que si le contenu change
-            data = gzip.compress(f.read(), compresslevel=9, mtime=0)
+            raw = f.read()
+        # Dans les pages, __WEBVER__ est remplacé par la version du site : les fichiers partagés
+        # sont appelés par app.css?v=__WEBVER__ et peuvent ainsi être conservés en cache par le navigateur
+        if ext == ".html":
+            raw = raw.replace(b"__WEBVER__", web_version.encode())
+        # mtime=0 pour que le fichier généré ne change que si le contenu change
+        data = gzip.compress(raw, compresslevel=9, mtime=0)
         var = "WEB_" + re.sub(r"[^A-Za-z0-9]", "_", name)
         out.append(f"static const uint8_t {var}[] PROGMEM = {{")
         for i in range(0, len(data), 20):
