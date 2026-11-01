@@ -164,11 +164,14 @@ const MaxPV = (() => {
            '", opaque="' + challenge.opaque + '"';
   }
 
-  // Requête authentifiée : sans défi connu ou si le défi est refusé, MaxPV! en renvoie un nouveau
-  // dans X-MaxPV-Auth et la requête est rejouée une fois. Un second refus signifie des identifiants incorrects
+  // Requête authentifiée. Sur un refus, MaxPV! renvoie un nouveau défi dans X-MaxPV-Auth et la requête
+  // est rejouée avec ce défi :
+  // - premier refus : pas encore de défi, ou nonce expiré (5 minutes) ;
+  // - refus suivant avec stale=true : seul le nonce était refusé (requêtes simultanées arrivées dans le désordre),
+  //   nouvel essai ; sans stale=true, ce sont les identifiants qui sont incorrects
   async function authFetch(url, options) {
     options = Object.assign({ method: "GET" }, options);
-    for (let attempt = 0; attempt < 2; attempt++) {
+    for (let attempt = 0; attempt < 3; attempt++) {
       const headers = new Headers(options.headers || {});
       headers.set("X-MaxPV", "1");
       if (challenge && session) headers.set("Authorization", authorization(options.method, url));
@@ -176,21 +179,24 @@ const MaxPV = (() => {
       // (fenêtre de connexion d'une ancienne version) ; seuls ceux du mode Administrateur sont envoyés
       const response = await fetch(url, Object.assign({}, options, { headers: headers, cache: "no-store", credentials: "omit" }));
       const offer = response.status === 401 ? response.headers.get("X-MaxPV-Auth") : null;
-      if (!offer || attempt === 1) return response;
+      if (!offer || attempt === 2) return response;
+      const stale = /stale\s*=\s*"?true/i.test(offer);
+      if (attempt === 1 && !stale) return response;
       challenge = {};
       offer.replace(/(\w+)="([^"]*)"/g, (all, key, value) => { challenge[key] = value; });
       nonceCount = 0;
     }
   }
 
-  // En-tête Authorization pour une requête envoyée hors de fetch (envoi du firmware)
+  // En-tête Authorization pour une requête envoyée hors de fetch (envoi du firmware).
+  // Le défi est d'abord validé (et renouvelé s'il a expiré) par /api/auth : un envoi long ne doit pas
+  // partir avec un nonce sur le point d'expirer, il ne pourrait pas être rejoué
   async function authHeader(method, url) {
     await requireAdmin();
-    if (!challenge) {
-      const response = await authFetch("api/auth");
-      if (response.status === 401) { logout(); throw new Error("mode Administrateur expiré"); }
-      if (!challenge) throw new Error("MaxPV! n'a pas fourni de défi d'authentification");
-    }
+    challenge = null;
+    const response = await authFetch("api/auth");
+    if (response.status === 401) { logout(); throw new Error("mode Administrateur expiré"); }
+    if (!challenge) throw new Error("MaxPV! n'a pas fourni de défi d'authentification");
     return authorization(method, url);
   }
 

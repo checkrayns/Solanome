@@ -56,6 +56,8 @@
 #define DEFAULT_WEB_USER    "admin"
 #define DEFAULT_WEB_PASS    "maxpv"
 #define WEB_REALM           "MaxPV"
+#define DIGEST_NONCES       8           // Nombre de nonces Digest conservés (les plus anciens sont remplacés)
+#define DIGEST_NONCE_LIFE   300         // Durée de validité d'un nonce en secondes (au-delà : défi stale=true)
 
 // Valeurs par défaut de la configuration TCP MaxPV!
 #define DEFAULT_IP          "192.168.1.250"

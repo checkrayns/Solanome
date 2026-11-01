@@ -59,6 +59,7 @@
 #include <Updater.h>
 #include <MD5Builder.h>
 #include <WebAuthentication.h>
+#include "request_private.h"
 #include <Ticker.h>
 #include <TickerScheduler.h>
 #include <ArduinoJson.h>
@@ -170,6 +171,17 @@ int mqttActive      = OFF;                          // MQTT actif (= ON) ou non 
 String webUser;                                     // Identifiant
 String webPass;                                     // Mot de passe
 String webHA1;                                      // Empreinte Digest MD5(identifiant:WEB_REALM:mot de passe)
+
+// Nonces Digest émis par MaxPV! (protection contre le rejeu)
+struct digestNonce
+{
+  char     value[33];   // nonce en hexadécimal, chaîne vide = emplacement libre
+  uint32_t created;     // instant d'émission (uptime en secondes)
+  uint32_t lastNc;      // dernier compteur nc accepté avec ce nonce
+};
+digestNonce digestNonces[DIGEST_NONCES];
+char digestOpaque[33] = "";                         // valeur opaque des défis, tirée au démarrage
+bool digestStale = false;                           // dernier refus dû uniquement au nonce : défi stale=true
 
 // Configuration du relais distant
 String relaisDistantIP;                                     // IP du relais distant       
@@ -364,6 +376,7 @@ AsyncWiFiManager  wifiManager(&webServer, &dnsServer);
   webUser     = DEFAULT_WEB_USER;
   webPass     = DEFAULT_WEB_PASS;
   updateWebHA1();
+  randomHex32 ( digestOpaque );
 
   relaisDistantIP.reserve(15);
   relaisDistantOn.reserve(DEFAUT_PATH_CMD);
@@ -2610,36 +2623,160 @@ void remoteRelay ( int state )
 ///////////////////////////////////////////////////////////////////
 // Contrôle d'accès à l'interface Web                            //
 //                                                               //
-// Authentification HTTP Digest : le mot de passe ne circule     //
-// pas en clair. authenticate() est appelé avec l'empreinte HA1, //
-// ce qui écarte l'authentification Basic (mot de passe en       //
-// clair) : en mode empreinte, la bibliothèque compare la valeur //
-// Basic à l'empreinte elle-même.                                //
+// Authentification HTTP Digest (qop=auth) : le mot de passe ne  //
+// circule pas en clair. Seul Digest est accepté (Basic          //
+// transmettrait le mot de passe en clair).                      //
+//                                                               //
+// Protection contre le rejeu : la bibliothèque ne contrôle ni   //
+// le nonce ni l'URI signée. MaxPV! émet lui-même ses nonces,    //
+// les garde DIGEST_NONCE_LIFE secondes avec le dernier compteur //
+// nc accepté, et refuse un nonce inconnu ou expiré, un nc qui   //
+// n'augmente pas, ou une URI signée différente de la requête.   //
+// Un nonce expiré avec des identifiants corrects donne un       //
+// nouveau défi stale=true : le client se réauthentifie sans     //
+// redemander le mot de passe.                                   //
+//                                                               //
 // Les requêtes qui modifient l'état (POST) doivent en plus      //
 // venir de l'interface de MaxPV! (en-tête Origin) : protection  //
-// contre le CSRF, un navigateur renvoyant les identifiants      //
-// Digest mémorisés à toute requête vers MaxPV!                  //
+// contre le CSRF.                                               //
 ///////////////////////////////////////////////////////////////////
 
-// Identifiants Digest valides, sans réponse
-bool isWebAuthenticated (AsyncWebServerRequest * request)
+// 32 chiffres hexadécimaux aléatoires (générateur matériel de l'ESP8266)
+void randomHex32 (char* out)
 {
-  return request->authenticate ( webUser.c_str(), webHA1.c_str(), WEB_REALM, true );
+  for (int i = 0; i < 4; i++) sprintf ( out + 8 * i, "%08lx", (unsigned long) ESP.random() );
 }
 
 
-// Demande d'authentification (401).
+// Nouveau nonce Digest : remplace un emplacement libre, sinon le nonce le plus ancien
+const char* newDigestNonce (void)
+{
+  int slot = -1;
+  for (int i = 0; ( i < DIGEST_NONCES ) && ( slot < 0 ); i++)
+    if ( digestNonces[i].value[0] == 0 ) slot = i;
+  if ( slot < 0 ) {
+    slot = 0;
+    for (int i = 1; i < DIGEST_NONCES; i++)
+      if ( digestNonces[i].created < digestNonces[slot].created ) slot = i;
+  }
+  randomHex32 ( digestNonces[slot].value );
+  digestNonces[slot].created = uptimeSeconds();
+  digestNonces[slot].lastNc = 0;
+  return digestNonces[slot].value;
+}
+
+
+// Valeur d'un champ de l'en-tête Authorization Digest (paires nom=valeur séparées par des virgules,
+// valeurs éventuellement entre guillemets), découpé comme le fait la bibliothèque
+String digestField (const String& header, const char* name)
+{
+  int start = 0;
+  while ( start < (int) header.length() ) {
+    int end = header.indexOf ( ',', start );
+    if ( end < 0 ) end = header.length();
+    String pair = header.substring ( start, end );
+    pair.trim();
+    int equal = pair.indexOf ( '=' );
+    if ( ( equal > 0 ) && pair.substring ( 0, equal ).equals ( name ) ) {
+      String value = pair.substring ( equal + 1 );
+      value.trim();
+      if ( ( value.length() >= 2 ) && value.startsWith ( "\"" ) && value.endsWith ( "\"" ) )
+        value = value.substring ( 1, value.length() - 1 );
+      return value;
+    }
+    start = end + 1;
+  }
+  return String();
+}
+
+
+// L'URI signée correspond-elle à la requête reçue ? Même chemin et mêmes paramètres d'URL,
+// décodés comme le fait la bibliothèque (les paramètres du corps de la requête ne sont pas signés)
+bool digestUriMatches (AsyncWebServerRequest * request, const String& uri)
+{
+  int question = uri.indexOf ( '?' );
+  String path = ( question < 0 ) ? uri : uri.substring ( 0, question );
+  if ( !request->urlDecode ( path ).equals ( request->url() ) ) return false;
+
+  String query = ( question < 0 ) ? String() : uri.substring ( question + 1 );
+  size_t signedParams = 0;
+  int start = 0;
+  while ( start < (int) query.length() ) {
+    int end = query.indexOf ( '&', start );
+    if ( end < 0 ) end = query.length();
+    int equal = query.indexOf ( '=', start );
+    if ( ( equal < 0 ) || ( equal > end ) ) equal = end;
+    String name = request->urlDecode ( query.substring ( start, equal ) );
+    String value = ( equal + 1 < end ) ? request->urlDecode ( query.substring ( equal + 1, end ) ) : String();
+    AsyncWebParameter* param = request->getParam ( name, false, false );
+    if ( ( param == nullptr ) || !param->value().equals ( value ) ) return false;
+    signedParams++;
+    start = end + 1;
+  }
+
+  size_t urlParams = 0;
+  for (size_t i = 0; i < request->params(); i++) {
+    AsyncWebParameter* param = request->getParam ( i );
+    if ( !param->isPost() && !param->isFile() ) urlParams++;
+  }
+  return signedParams == urlParams;
+}
+
+
+// Identifiants Digest valides, sans réponse.
+// digestStale indique un refus dû uniquement au nonce (inconnu, expiré ou nc rejoué) : défi stale=true
+bool isWebAuthenticated (AsyncWebServerRequest * request)
+{
+  digestStale = false;
+  if ( !requestIsDigest ( request ) ) return false;
+
+  const String& header = requestAuthorization ( request );
+  String nonce = digestField ( header, "nonce" );
+  String uri   = digestField ( header, "uri" );
+  uint32_t nc  = strtoul ( digestField ( header, "nc" ).c_str(), nullptr, 16 );
+
+  if ( !digestUriMatches ( request, uri ) ) return false;
+
+  int slot = -1;
+  for (int i = 0; i < DIGEST_NONCES; i++)
+    if ( ( digestNonces[i].value[0] != 0 ) && nonce.equals ( digestNonces[i].value ) ) slot = i;
+  bool nonceValid = ( slot >= 0 )
+                 && ( ( uptimeSeconds() - digestNonces[slot].created ) < DIGEST_NONCE_LIFE )
+                 && ( nc > digestNonces[slot].lastNc );
+
+  // Vérification de la réponse avec le nonce, l'opaque et l'URI contrôlés. Pour un nonce refusé,
+  // la vérification se fait avec le nonce présenté : elle sert seulement à savoir si un défi
+  // stale=true peut être proposé (identifiants corrects), la requête reste refusée
+  const char* expectedNonce = nonceValid ? digestNonces[slot].value : nonce.c_str();
+  if ( !checkDigestAuthentication ( header.c_str(), request->methodToString(), webUser.c_str(), webHA1.c_str(),
+                                    WEB_REALM, true, expectedNonce, digestOpaque, uri.c_str() ) ) return false;
+
+  if ( !nonceValid ) {
+    digestStale = true;
+    return false;
+  }
+  digestNonces[slot].lastNc = nc;
+  return true;
+}
+
+
+// Demande d'authentification (401) avec un nouveau nonce, stale=true si seul le nonce était refusé.
 // Pour l'interface de MaxPV! (en-tête X-MaxPV), le défi Digest est transmis dans l'en-tête X-MaxPV-Auth
 // et non dans WWW-Authenticate : le navigateur n'affiche pas sa fenêtre de connexion, c'est le mode
 // Administrateur de l'interface qui calcule la réponse. curl et Home Assistant reçoivent le défi standard
 void sendAuthChallenge (AsyncWebServerRequest * request)
 {
-  if ( request->hasHeader ( F("X-MaxPV") ) ) {
-    AsyncWebServerResponse *response = request->beginResponse ( 401, "text/plain", F("Unauthorized") );
-    response->addHeader ( F("X-MaxPV-Auth"), String ( F("Digest ") ) + requestDigestAuthentication ( WEB_REALM ) );
-    request->send ( response );
-  }
-  else request->requestAuthentication ( WEB_REALM, true );
+  String challenge = F("Digest realm=\"" WEB_REALM "\", qop=\"auth\", nonce=\"");
+  challenge += newDigestNonce();
+  challenge += F("\", opaque=\"");
+  challenge += digestOpaque;
+  challenge += '"';
+  if ( digestStale ) challenge += F(", stale=true");
+  digestStale = false;
+
+  AsyncWebServerResponse *response = request->beginResponse ( 401, "text/plain", F("Unauthorized") );
+  response->addHeader ( request->hasHeader ( F("X-MaxPV") ) ? F("X-MaxPV-Auth") : F("WWW-Authenticate"), challenge );
+  request->send ( response );
 }
 
 
@@ -2923,11 +3060,15 @@ void setWebHandlers (void) {
 
   webServer.on("/update", HTTP_POST, [](AsyncWebServerRequest * request)
   {
-    // Appelé une fois l'envoi du fichier terminé. Sans autorisation, rien n'a été écrit en flash
+    // Appelé une fois l'envoi du fichier terminé. Sans autorisation, rien n'a été écrit en flash.
+    // Une requête autorisée au premier morceau n'est pas contrôlée une seconde fois :
+    // son compteur nc a déjà été accepté et serait refusé comme un rejeu
     bool written = ( request == otaRequest );
     if ( written ) otaRequest = nullptr;
-    if ( !checkWebChange ( request ) ) return;
-    if ( !written ) otaSuccess = false;
+    else {
+      if ( !checkWebChange ( request ) ) return;
+      otaSuccess = false;
+    }
     AsyncWebServerResponse *response;
     if ( otaSuccess ) {
       response = request->beginResponse ( 200, "text/plain", F("OK") );
