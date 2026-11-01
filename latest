@@ -1,6 +1,6 @@
 {
   "ecopvver" : "3.60",
-  "maxpvver" : "3.65",
-  "webver" : "3.65",
-  "whatsnew" : "Nouveautés : Reconnexion automatique MQTT après une coupure Wifi, redémarrage après 15 minutes sans Wifi.<br>Voir les informations sur GitHub.<br>Rendez-vous à <a href=\"https://github.com/checkrayns/MaxPV\" target=\"_blank\">https://github.com/checkrayns/MaxPV</a><br>"
+  "maxpvver" : "3.66",
+  "webver" : "3.66",
+  "whatsnew" : "Nouveautés : Nouvelle interface Web responsive, utilisable sur téléphone et ordinateur, sans connexion à Internet.<br>Voir les informations sur GitHub.<br>Rendez-vous à <a href=\"https://github.com/checkrayns/MaxPV\" target=\"_blank\">https://github.com/checkrayns/MaxPV</a><br>"
 }
