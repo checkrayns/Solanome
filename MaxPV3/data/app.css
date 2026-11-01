@@ -674,3 +674,60 @@ input[type="range"] { width: 100%; min-height: 44px; accent-color: var(--accent)
 .prose ul { margin: 0; padding-left: 20px; }
 
 .prose li { margin: 4px 0; }
+
+/* ---------- Mode Administrateur ---------- */
+
+.nav-lock { flex: none; width: 14px; height: 14px; margin-left: auto; opacity: 0.6; }
+
+html.admin .nav-lock { display: none; }
+
+.admin-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-toggle[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+
+.nav-side .admin-toggle { margin-top: auto; }
+
+.nav-sheet .admin-toggle { margin-bottom: 6px; }
+
+html.admin .locked-only, html:not(.admin) .admin-only { display: none; }
+
+.locked-card { display: grid; justify-items: center; gap: 10px; padding: 32px 18px; text-align: center; }
+
+.locked-card .locked-icon { width: 40px; height: 40px; color: var(--accent); }
+
+.locked-card h2 { font-size: 1.15rem; }
+
+dialog.login {
+  width: min(420px, calc(100vw - 32px));
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+}
+
+dialog.login::backdrop { background: rgba(0, 0, 0, 0.45); }
+
+dialog.login form { display: grid; gap: 14px; }
+
+dialog.login h2 { font-size: 1.2rem; }
+
+dialog.login .hint { margin: 0; color: var(--muted); font-size: 0.92rem; }
+
+.login-error { min-height: 1.2em; margin: 0; color: var(--import); font-weight: 600; }

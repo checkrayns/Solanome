@@ -77,7 +77,7 @@
         </p>
         <div class="form-grid">
           <label class="field"><span>Identifiant</span>
-            <input type="text" name="web_user" required maxlength="39" autocomplete="username"></label>
+            <input type="text" name="web_user" required maxlength="39" autocomplete="username" pattern="[A-Za-z0-9._\-]+" title="Lettres, chiffres, point, tiret et souligné"></label>
           <span></span>
           <label class="field"><span>Nouveau mot de passe</span>
             <input type="password" name="web_pass" maxlength="39" minlength="5" autocomplete="new-password" data-secret placeholder="Inchangé">
@@ -162,7 +162,7 @@
         <h2 class="card-title">Sauvegarde et restauration</h2>
         <p class="hint">Le fichier exporté contient la configuration de MaxPV! sans les mots de passe (MQTT et interface) : une restauration conserve les mots de passe actuels.</p>
         <div class="btn-row" style="margin-top: 14px;">
-          <a class="btn" href="DLconfig" download="config.json">Exporter la configuration</a>
+          <button class="btn" type="button" id="export">Exporter la configuration</button>
         </div>
         <div class="form-grid">
           <label class="field full"><span>Fichier de configuration à restaurer</span>
@@ -295,9 +295,15 @@
       }, "Configuration effacée, MaxPV! redémarre en point d'accès").catch(() => {});
     });
 
-    MaxPV.getConfig()
-      .then((config) => { fill(config); setDirty(false); })
-      .catch(() => { saveMsg.textContent = "Configuration inaccessible"; });
+    document.getElementById("export").addEventListener("click", (e) => {
+      MaxPV.run(e.target, () => MaxPV.download("DLconfig", "config.json")).catch(() => {});
+    });
+
+    MaxPV.adminPage(() => {
+      MaxPV.getConfig()
+        .then((config) => { fill(config); setDirty(false); })
+        .catch(() => { saveMsg.textContent = "Configuration inaccessible"; });
+    });
 
   </script>
 </body>

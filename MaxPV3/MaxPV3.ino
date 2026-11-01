@@ -58,6 +58,7 @@
 #include <AsyncHTTPRequest_Generic.h> 
 #include <Updater.h>
 #include <MD5Builder.h>
+#include <WebAuthentication.h>
 #include <Ticker.h>
 #include <TickerScheduler.h>
 #include <ArduinoJson.h>
@@ -2627,11 +2628,26 @@ bool isWebAuthenticated (AsyncWebServerRequest * request)
 }
 
 
+// Demande d'authentification (401).
+// Pour l'interface de MaxPV! (en-tête X-MaxPV), le défi Digest est transmis dans l'en-tête X-MaxPV-Auth
+// et non dans WWW-Authenticate : le navigateur n'affiche pas sa fenêtre de connexion, c'est le mode
+// Administrateur de l'interface qui calcule la réponse. curl et Home Assistant reçoivent le défi standard
+void sendAuthChallenge (AsyncWebServerRequest * request)
+{
+  if ( request->hasHeader ( F("X-MaxPV") ) ) {
+    AsyncWebServerResponse *response = request->beginResponse ( 401, "text/plain", F("Unauthorized") );
+    response->addHeader ( F("X-MaxPV-Auth"), String ( F("Digest ") ) + requestDigestAuthentication ( WEB_REALM ) );
+    request->send ( response );
+  }
+  else request->requestAuthentication ( WEB_REALM, true );
+}
+
+
 // Identifiants Digest valides, sinon demande d'authentification (401)
 bool checkWebAuth (AsyncWebServerRequest * request)
 {
   if ( isWebAuthenticated ( request ) ) return true;
-  request->requestAuthentication ( WEB_REALM, true );
+  sendAuthChallenge ( request );
   return false;
 }
 
@@ -2652,14 +2668,6 @@ bool checkWebChange (AsyncWebServerRequest * request)
     return false;
   }
   return checkWebAuth ( request );
-}
-
-
-// Pages réservées : configuration, administration, assistant et mise à jour
-bool isProtectedPage (const char* path)
-{
-  return ( strcmp ( path, "/configuration.html" ) == 0 ) || ( strcmp ( path, "/admin.html" ) == 0 )
-      || ( strcmp ( path, "/wizard.html" ) == 0 )        || ( strcmp ( path, "/maj.html" ) == 0 );
 }
 
 ///////////////////////////////////////////////////////////////////
@@ -2895,7 +2903,6 @@ void setWebHandlers (void) {
     const webFile* file = &webFiles[i];
     webServer.on(file->path, HTTP_ANY, [file](AsyncWebServerRequest * request)
     {
-      if ( isProtectedPage ( file->path ) && !checkWebAuth ( request ) ) return;
       sendWebFile ( request, file );
     });
   }
@@ -2907,9 +2914,10 @@ void setWebHandlers (void) {
   // Seul le firmware peut être mis à jour : le filesystem, qui contient
   // la configuration de MaxPV!, n'est jamais réécrit.
   // Une image filesystem est refusée par Update qui vérifie l'en-tête du firmware
+  // Les pages ne contiennent aucune donnée sensible : elles sont verrouillées par le mode Administrateur
+  // de l'interface, et toutes les requêtes qu'elles émettent pour modifier MaxPV! sont authentifiées
   webServer.on("/update", HTTP_GET, [](AsyncWebServerRequest * request)
   {
-    if ( !checkWebAuth ( request ) ) return;
     sendWebFile ( request, findWebFile ( "/maj.html" ) );
   });
 
@@ -3005,6 +3013,13 @@ void setWebHandlers (void) {
     else if ( request->hasArg ( F("boostoff") ) ) boostOFF ( EVT_SRC_WEB );
     else response = F("Unknown request");
     request->send ( 200, "text/plain", response );
+  });
+
+  // Vérification des identifiants à l'ouverture du mode Administrateur de l'interface
+  webServer.on("/api/auth", HTTP_GET, [](AsyncWebServerRequest * request)
+  {
+    if ( !checkWebAuth ( request ) ) return;
+    request->send ( 200, "text/plain", F("OK") );
   });
 
   webServer.on("/api/status", HTTP_GET, [](AsyncWebServerRequest * request)

@@ -12,16 +12,17 @@ const MaxPV = (() => {
   // ---------- Menu ----------
 
   // main : présent dans la barre du bas sur téléphone, les autres sont dans « Plus »
+  // admin : page réservée au mode Administrateur
   const NAV = [
     { href: "dashboard.html",     label: "Accueil",          icon: "home",    main: true },
     { href: "graph.html",         label: "Graphiques",       icon: "chart",   main: true },
     { href: "events.html",        label: "Journal",          icon: "list",    main: true },
-    { href: "admin.html",         label: "Administration",   icon: "gear",    main: true, short: "Réglages" },
+    { href: "admin.html",         label: "Administration",   icon: "gear",    main: true, short: "Réglages", admin: true },
     { sep: true },
-    { href: "configuration.html", label: "Paramétrage avancé", icon: "sliders" },
-    { href: "wizard.html",        label: "Assistant de configuration", icon: "wand" },
+    { href: "configuration.html", label: "Paramétrage avancé", icon: "sliders", admin: true },
+    { href: "wizard.html",        label: "Assistant de configuration", icon: "wand", admin: true },
     { href: "index.html",         label: "Moniteur détaillé", icon: "table" },
-    { href: "maj.html",           label: "Mise à jour",       icon: "upload" },
+    { href: "maj.html",           label: "Mise à jour",       icon: "upload", admin: true },
     { href: "credits.html",       label: "Crédits",           icon: "info" }
   ];
 
@@ -35,11 +36,13 @@ const MaxPV = (() => {
     table:   "M3 3h18v18H3zM3 9h18M3 15h18M9 3v18",
     upload:  "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12",
     info:    "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 16v-4M12 8h.01",
-    more:    "M5 12h.01M12 12h.01M19 12h.01"
+    more:    "M5 12h.01M12 12h.01M19 12h.01",
+    lock:    "M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4",
+    unlock:  "M5 11h14v10H5zM8 11V7a4 4 0 0 1 7.7-1.5"
   };
 
-  function icon(name) {
-    return '<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+  function icon(name, cls) {
+    return '<svg class="' + (cls || "nav-icon") + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
            'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + ICONS[name] + '"/></svg>';
   }
 
@@ -55,20 +58,31 @@ const MaxPV = (() => {
     let bottom = "";
     let sheet = "";
 
+    // Cadenas sur les pages réservées, masqué en mode Administrateur
+    const lock = (item) => item.admin ? icon("lock", "nav-lock") : "";
     NAV.forEach((item) => {
       if (item.sep) { side += '<div class="sep"></div>'; return; }
-      side += '<a class="item" href="' + item.href + '"' + current(item) + ">" + icon(item.icon) + item.label + "</a>";
+      side += '<a class="item" href="' + item.href + '"' + current(item) + ">" + icon(item.icon) + item.label + lock(item) + "</a>";
       if (item.main) bottom += '<a href="' + item.href + '"' + current(item) + ">" + icon(item.icon) + (item.short || item.label) + "</a>";
-      else sheet += '<li><a href="' + item.href + '"' + current(item) + ">" + icon(item.icon) + item.label + "</a></li>";
+      else sheet += '<li><a href="' + item.href + '"' + current(item) + ">" + icon(item.icon) + item.label + lock(item) + "</a></li>";
     });
     bottom += '<button type="button" id="nav-more" aria-expanded="false" aria-controls="nav-sheet">' + icon("more") + "Plus</button>";
+    const adminButton = '<button type="button" class="admin-toggle">' + icon("lock") + "<span></span></button>";
 
     const nav = document.createElement("div");
     nav.innerHTML =
-      '<nav class="nav-side" aria-label="Menu principal">' + side + "</nav>" +
+      '<nav class="nav-side" aria-label="Menu principal">' + side + adminButton + "</nav>" +
       '<nav class="nav-bottom" aria-label="Menu principal">' + bottom + "</nav>" +
-      '<div class="nav-sheet" id="nav-sheet"><ul>' + sheet + "</ul></div>";
+      '<div class="nav-sheet" id="nav-sheet"><ul><li>' + adminButton + "</li>" + sheet + "</ul></div>";
     document.body.prepend(nav);
+
+    nav.querySelectorAll(".admin-toggle").forEach((button) => {
+      button.addEventListener("click", () => {
+        if (isAdmin()) logout();
+        else requireAdmin().catch(() => {});
+      });
+    });
+    renderAdminState();
 
     const more = document.getElementById("nav-more");
     const sheetEl = document.getElementById("nav-sheet");
@@ -90,14 +104,208 @@ const MaxPV = (() => {
     return response.json();
   }
 
-  // Commande : boost, SSR ou relais. L'état est relu aussitôt, puis une seconde fois
-  // car EcoPV ne confirme le changement qu'à sa transmission suivante
-  // Requête de l'API qui modifie l'état : en POST et réservée aux utilisateurs authentifiés.
-  // Le navigateur demande l'identifiant et le mot de passe au premier appel (authentification Digest)
-  // puis les réutilise. Réponse "Request successfully processed" en cas de succès
+  // ---------- Mode Administrateur ----------
+  //
+  // Les pages et requêtes qui modifient MaxPV! sont réservées au mode Administrateur.
+  // MaxPV! vérifie chaque requête protégée par authentification HTTP Digest. Pour l'interface,
+  // le défi est transmis dans l'en-tête X-MaxPV-Auth (et non WWW-Authenticate, qui déclencherait
+  // la fenêtre de connexion du navigateur) et la réponse est calculée ici.
+  // Le mot de passe n'est jamais conservé : seule l'empreinte HA1 = MD5(identifiant:MaxPV:mot de passe)
+  // est gardée le temps de l'onglet (sessionStorage).
+
+  const REALM = "MaxPV";
+  const SESSION_KEY = "maxpv-admin";
+  let session = loadSession();     // { user, ha1 }
+  let challenge = null;            // défi Digest du serveur { realm, nonce, opaque }
+  let nonceCount = 0;
+  let pendingLogin = null;
+
+  function loadSession() {
+    try { return JSON.parse(sessionStorage.getItem(SESSION_KEY)); }
+    catch (e) { return null; }
+  }
+
+  function storeSession(value) {
+    session = value;
+    try {
+      if (value) sessionStorage.setItem(SESSION_KEY, JSON.stringify(value));
+      else sessionStorage.removeItem(SESSION_KEY);
+    }
+    catch (e) { /* stockage indisponible : mode Administrateur limité à la page */ }
+    renderAdminState();
+  }
+
+  const isAdmin = () => !!session;
+
+  function renderAdminState() {
+    document.documentElement.classList.toggle("admin", isAdmin());
+    document.querySelectorAll(".admin-toggle").forEach((button) => {
+      button.querySelector("path").setAttribute("d", ICONS[isAdmin() ? "unlock" : "lock"]);
+      button.querySelector("span").textContent = isAdmin() ? "Quitter le mode Administrateur" : "Mode Administrateur";
+      button.setAttribute("aria-pressed", String(isAdmin()));
+    });
+  }
+
+  function randomHex(bytes) {
+    const values = new Uint8Array(bytes);
+    crypto.getRandomValues(values);
+    return Array.from(values, (b) => b.toString(16).padStart(2, "0")).join("");
+  }
+
+  // En-tête Authorization Digest (RFC 2617, qop=auth) pour une requête
+  function authorization(method, url) {
+    const target = new URL(url, location.href);
+    const uri = target.pathname + target.search;
+    const nc = (++nonceCount).toString(16).padStart(8, "0");
+    const cnonce = randomHex(8);
+    const response = md5Text([session.ha1, challenge.nonce, nc, cnonce, "auth", md5Text(method + ":" + uri)].join(":"));
+    return 'Digest username="' + session.user + '", realm="' + challenge.realm + '", nonce="' + challenge.nonce +
+           '", uri="' + uri + '", qop=auth, nc=' + nc + ', cnonce="' + cnonce + '", response="' + response +
+           '", opaque="' + challenge.opaque + '"';
+  }
+
+  // Requête authentifiée : sans défi connu ou si le défi est refusé, MaxPV! en renvoie un nouveau
+  // dans X-MaxPV-Auth et la requête est rejouée une fois. Un second refus signifie des identifiants incorrects
+  async function authFetch(url, options) {
+    options = Object.assign({ method: "GET" }, options);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const headers = new Headers(options.headers || {});
+      headers.set("X-MaxPV", "1");
+      if (challenge && session) headers.set("Authorization", authorization(options.method, url));
+      const response = await fetch(url, Object.assign({}, options, { headers: headers, cache: "no-store" }));
+      const offer = response.status === 401 ? response.headers.get("X-MaxPV-Auth") : null;
+      if (!offer || attempt === 1) return response;
+      challenge = {};
+      offer.replace(/(\w+)="([^"]*)"/g, (all, key, value) => { challenge[key] = value; });
+      nonceCount = 0;
+    }
+  }
+
+  // En-tête Authorization pour une requête envoyée hors de fetch (envoi du firmware)
+  async function authHeader(method, url) {
+    await requireAdmin();
+    if (!challenge) {
+      const response = await authFetch("api/auth");
+      if (response.status === 401) { logout(); throw new Error("mode Administrateur expiré"); }
+    }
+    return authorization(method, url);
+  }
+
+  async function checkCredentials(user, password) {
+    const ha1 = md5Text(user + ":" + REALM + ":" + password);
+    if (demo) return (user === "admin" && password === "maxpv") ? { user: user, ha1: ha1 } : null;
+    const previous = session;
+    session = { user: user, ha1: ha1 };
+    try {
+      const response = await authFetch("api/auth");
+      if (response.ok) return session;
+      if (response.status !== 401) throw new Error("HTTP " + response.status);
+      return null;
+    }
+    finally { session = previous; }
+  }
+
+  // Fenêtre de connexion au mode Administrateur. Résolue une fois les identifiants acceptés
+  function requireAdmin() {
+    if (isAdmin()) return Promise.resolve();
+    if (pendingLogin) return pendingLogin;
+    pendingLogin = new Promise((resolve, reject) => {
+      const dialog = document.createElement("dialog");
+      dialog.className = "login";
+      dialog.innerHTML =
+        '<form method="dialog">' +
+        '<h2>Mode Administrateur</h2>' +
+        '<p class="hint">Identifiant et mot de passe de MaxPV! pour modifier les réglages et piloter le routeur.</p>' +
+        '<label class="field"><span>Identifiant</span><input type="text" name="user" autocomplete="username" required></label>' +
+        '<label class="field"><span>Mot de passe</span><input type="password" name="password" autocomplete="current-password" required></label>' +
+        '<p class="login-error" role="alert"></p>' +
+        '<div class="btn-row"><button class="btn" type="button" value="cancel">Annuler</button>' +
+        '<button class="btn primary" type="submit">Déverrouiller</button></div>' +
+        "</form>";
+      document.body.appendChild(dialog);
+      const form = dialog.querySelector("form");
+      const error = dialog.querySelector(".login-error");
+      let accepted = false;
+
+      const finish = () => {
+        dialog.remove();
+        pendingLogin = null;
+        if (accepted) resolve(); else reject(new Error("mode Administrateur requis"));
+      };
+
+      form.querySelector('button[value="cancel"]').addEventListener("click", () => dialog.close());
+      dialog.addEventListener("close", finish);
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const submit = form.querySelector('button[type="submit"]');
+        submit.disabled = true;
+        error.textContent = "";
+        try {
+          const result = await checkCredentials(form.elements.user.value.trim(), form.elements.password.value);
+          if (result) {
+            accepted = true;
+            storeSession(result);
+            dialog.close();
+            return;
+          }
+          error.textContent = "Identifiant ou mot de passe incorrect";
+          form.elements.password.select();
+        }
+        catch (err) { error.textContent = "MaxPV! ne répond pas"; }
+        finally { submit.disabled = false; }
+      });
+      dialog.showModal();
+      form.elements.user.focus();
+    });
+    return pendingLogin;
+  }
+
+  // Sortie du mode Administrateur : une page réservée est rechargée pour être verrouillée
+  function logout() {
+    storeSession(null);
+    challenge = null;
+    if (NAV.some((item) => item.admin && item.href === currentPage())) location.reload();
+  }
+
+  // Page réservée : son contenu (hors titre) est remplacé par un cadenas tant que le mode
+  // Administrateur n'est pas ouvert. init() est appelée une fois la page déverrouillée
+  function adminPage(init) {
+    const start = () => {
+      if (isAdmin()) { init(); return; }
+      const main = document.querySelector("main");
+      const hidden = Array.from(main.children).filter((el) => !el.classList.contains("topbar"));
+      hidden.forEach((el) => { el.hidden = true; });
+      const card = document.createElement("section");
+      card.className = "card locked-card";
+      card.innerHTML = icon("lock", "locked-icon") +
+        "<h2>Mode Administrateur requis</h2>" +
+        '<p class="hint">Cette page permet de modifier MaxPV!. Déverrouillez le mode Administrateur pour y accéder.</p>' +
+        '<button class="btn primary" type="button">Déverrouiller</button>';
+      main.appendChild(card);
+      card.querySelector("button").addEventListener("click", () => {
+        requireAdmin().then(() => {
+          card.remove();
+          hidden.forEach((el) => { el.hidden = false; });
+          init();
+        }).catch(() => {});
+      });
+    };
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
+    else start();
+  }
+
+  // Requête de l'API qui modifie l'état : en POST, en mode Administrateur.
+  // Réponse "Request successfully processed" en cas de succès
   async function post(path, body) {
+    await requireAdmin();
     if (demo) { Demo.command(path); return "Request successfully processed"; }
-    const response = await fetch(path, { method: "POST", cache: "no-store", body: body });
+    let response = await authFetch(path, { method: "POST", body: body });
+    if (response.status === 401) {
+      // Identifiants modifiés entre temps : nouvelle connexion puis nouvel essai
+      logout();
+      await requireAdmin();
+      response = await authFetch(path, { method: "POST", body: body });
+    }
     const text = await response.text();
     if (response.status === 401) throw new Error("identifiant ou mot de passe refusé");
     if (response.status === 403) throw new Error("requête refusée");
@@ -105,6 +313,62 @@ const MaxPV = (() => {
     return text;
   }
 
+  // Téléchargement d'un fichier protégé (export de la configuration)
+  async function download(path, filename) {
+    await requireAdmin();
+    const response = await authFetch(path);
+    if (!response.ok) throw new Error(response.status === 401 ? "identifiant ou mot de passe refusé" : "HTTP " + response.status);
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(await response.blob());
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => { URL.revokeObjectURL(link.href); link.remove(); }, 1000);
+  }
+
+  // ---------- MD5 ----------
+
+  // MD5 (RFC 1321) d'un tableau d'octets : authentification Digest et contrôle du firmware envoyé
+  function md5(bytes) {
+    const S = [7, 12, 17, 22, 5, 9, 14, 20, 4, 11, 16, 23, 6, 10, 15, 21];
+    const K = [];
+    const n = bytes.length;
+    let i;
+    for (i = 0; i < 64; i++) K[i] = Math.floor(Math.abs(Math.sin(i + 1)) * 4294967296) | 0;
+
+    const words = (((n + 8) >> 6) + 1) * 16;
+    const W = new Array(words).fill(0);
+    for (i = 0; i < n; i++) W[i >> 2] |= bytes[i] << ((i % 4) * 8);
+    W[n >> 2] |= 0x80 << ((n % 4) * 8);
+    W[words - 2] = (n * 8) | 0;
+    W[words - 1] = Math.floor(n / 536870912);
+
+    let a0 = 0x67452301, b0 = 0xefcdab89 | 0, c0 = 0x98badcfe | 0, d0 = 0x10325476;
+    for (let blk = 0; blk < words; blk += 16) {
+      let A = a0, B = b0, C = c0, D = d0, F, g, s;
+      for (i = 0; i < 64; i++) {
+        if (i < 16)      { F = (B & C) | (~B & D); g = i; }
+        else if (i < 32) { F = (D & B) | (~D & C); g = (5 * i + 1) % 16; }
+        else if (i < 48) { F = B ^ C ^ D;          g = (3 * i + 5) % 16; }
+        else             { F = C ^ (B | ~D);       g = (7 * i) % 16; }
+        F = (F + A + K[i] + W[blk + g]) | 0;
+        s = S[(i >> 4) * 4 + (i % 4)];
+        A = D; D = C; C = B;
+        B = (B + ((F << s) | (F >>> (32 - s)))) | 0;
+      }
+      a0 = (a0 + A) | 0; b0 = (b0 + B) | 0; c0 = (c0 + C) | 0; d0 = (d0 + D) | 0;
+    }
+
+    let hex = "";
+    const words4 = [a0, b0, c0, d0];
+    for (i = 0; i < 16; i++) hex += ("0" + ((words4[i >> 2] >>> ((i % 4) * 8)) & 0xff).toString(16)).slice(-2);
+    return hex;
+  }
+
+  const md5Text = (text) => md5(new TextEncoder().encode(text));
+
+  // Commande : boost, SSR ou relais. L'état est relu aussitôt, puis une seconde fois
+  // car EcoPV ne confirme le changement qu'à sa transmission suivante
   async function command(path) {
     await post(path);
     refreshSoon();
@@ -366,8 +630,10 @@ const MaxPV = (() => {
     };
   })();
 
+  renderAdminState();
   document.addEventListener("DOMContentLoaded", renderNav);
 
   return { demo, getJSON, getText, commands, action, getParams, setParam, getConfig, setConfig,
-           toast, run, onStatus, refreshSoon, fmt, newerVersion };
+           toast, run, onStatus, refreshSoon, fmt, newerVersion,
+           isAdmin, requireAdmin, adminPage, authHeader, download, logout, md5 };
 })();

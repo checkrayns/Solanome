@@ -104,52 +104,19 @@
       reader.readAsArrayBuffer(file);
     });
 
-    // MD5 (RFC 1321) d'un tableau d'octets, utilisé par l'ESP pour vérifier l'intégrité du firmware reçu
-    function md5(bytes) {
-      const S = [7, 12, 17, 22, 5, 9, 14, 20, 4, 11, 16, 23, 6, 10, 15, 21];
-      const K = [];
-      const n = bytes.length;
-      let i;
-      for (i = 0; i < 64; i++) K[i] = Math.floor(Math.abs(Math.sin(i + 1)) * 4294967296) | 0;
-
-      const words = (((n + 8) >> 6) + 1) * 16;
-      const W = new Array(words).fill(0);
-      for (i = 0; i < n; i++) W[i >> 2] |= bytes[i] << ((i % 4) * 8);
-      W[n >> 2] |= 0x80 << ((n % 4) * 8);
-      W[words - 2] = (n * 8) | 0;
-      W[words - 1] = Math.floor(n / 536870912);
-
-      let a0 = 0x67452301, b0 = 0xefcdab89 | 0, c0 = 0x98badcfe | 0, d0 = 0x10325476;
-      for (let blk = 0; blk < words; blk += 16) {
-        let A = a0, B = b0, C = c0, D = d0, F, g, s;
-        for (i = 0; i < 64; i++) {
-          if (i < 16)      { F = (B & C) | (~B & D); g = i; }
-          else if (i < 32) { F = (D & B) | (~D & C); g = (5 * i + 1) % 16; }
-          else if (i < 48) { F = B ^ C ^ D;          g = (3 * i + 5) % 16; }
-          else             { F = C ^ (B | ~D);       g = (7 * i) % 16; }
-          F = (F + A + K[i] + W[blk + g]) | 0;
-          s = S[(i >> 4) * 4 + (i % 4)];
-          A = D; D = C; C = B;
-          B = (B + ((F << s) | (F >>> (32 - s)))) | 0;
-        }
-        a0 = (a0 + A) | 0; b0 = (b0 + B) | 0; c0 = (c0 + C) | 0; d0 = (d0 + D) | 0;
-      }
-
-      let hex = "";
-      const words4 = [a0, b0, c0, d0];
-      for (i = 0; i < 16; i++) hex += ("0" + ((words4[i >> 2] >>> ((i % 4) * 8)) & 0xff).toString(16)).slice(-2);
-      return hex;
-    }
-
-    $("updatebutton").addEventListener("click", () => {
+    $("updatebutton").addEventListener("click", async () => {
       if (!firmwareBytes) return;
       if (MaxPV.demo) { MaxPV.toast("Mode démo : pas de mise à jour", "bad"); return; }
+      // Envoi réservé au mode Administrateur : en-tête Digest calculé avant l'envoi du fichier
+      let auth;
+      try { auth = await MaxPV.authHeader("POST", "update"); }
+      catch (e) { setStatus("Mise à jour impossible : " + e.message + ".", "bad"); return; }
       $("updatebutton").disabled = true;
       $("firmware").disabled = true;
 
       // Le MD5 doit précéder le fichier dans le formulaire pour être connu dès le début de l'envoi
       const form = new FormData();
-      form.append("MD5", md5(firmwareBytes));
+      form.append("MD5", MaxPV.md5(firmwareBytes));
       form.append("firmware", new Blob([firmwareBytes]), "firmware.bin");
 
       const xhttp = new XMLHttpRequest();
@@ -171,6 +138,8 @@
       };
       setStatus("Envoi du firmware, ne pas couper l'alimentation…", "warn");
       xhttp.open("POST", "update", true);
+      xhttp.setRequestHeader("X-MaxPV", "1");
+      xhttp.setRequestHeader("Authorization", auth);
       xhttp.send(form);
     });
 
@@ -193,7 +162,7 @@
       }, 3000);
     }
 
-    fillVersion();
+    MaxPV.adminPage(fillVersion);
 
   </script>
 </body>

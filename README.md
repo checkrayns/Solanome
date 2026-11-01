@@ -131,11 +131,12 @@ L'API permet d'interfacer MaxPV! avec des systèmes externes comme un système d
 Depuis la version 3.66, `http://maxpv/api/status` renvoie en un seul JSON tout l'état de MaxPV! : mesures, énergies du jour, index totaux, états du SSR, du relais et du boost, versions.
 
 ## Authentification
-Les pages et requêtes qui modifient MaxPV! sont protégées par un identifiant et un mot de passe (authentification HTTP Digest : le mot de passe ne circule pas en clair).
+Les fonctions qui modifient MaxPV! sont réservées au **mode Administrateur**, protégé par un identifiant et un mot de passe.
 * **Identifiants d'origine : `admin` / `maxpv`**. Changez le mot de passe dans la page *Administration*, carte *Accès à l'interface*.
-* Pages protégées : *Administration*, *Paramétrage avancé*, *Assistant de configuration*, *Mise à jour* (`/update`), ainsi que l'export de la configuration (`/DLconfig`).
-* Requêtes protégées : `/api/action` et `/api/set`. **Elles doivent être envoyées en POST** (les requêtes GET ne sont plus acceptées), les paramètres pouvant rester dans l'URL. Une requête émise par une autre page Web que celle de MaxPV! est refusée (protection contre le CSRF).
-* Restent en accès libre : le tableau de bord, les graphiques, le journal et les API de consultation (`/api/status`, `/api/get`, `/api/history`, `/api/events`). La configuration renvoyée par `/api/get?configmaxpv` et `/DLconfig` ne contient pas les mots de passe.
+* Le mode Administrateur s'ouvre depuis le menu (*Mode Administrateur*), depuis une page réservée (*Déverrouiller*) ou au premier clic sur une commande du tableau de bord. Il reste ouvert jusqu'à la fermeture de l'onglet ou jusqu'au clic sur *Quitter le mode Administrateur*. Le mot de passe n'est pas conservé par le navigateur.
+* Pages réservées : *Administration*, *Paramétrage avancé*, *Assistant de configuration* et *Mise à jour*, ainsi que les commandes boost, SSR et relais du tableau de bord.
+* Côté MaxPV!, chaque requête qui modifie l'état est vérifiée par authentification HTTP Digest (le mot de passe ne circule pas en clair) : `/api/action`, `/api/set`, l'envoi du firmware (`/update`) et l'export de la configuration (`/DLconfig`). **`/api/action` et `/api/set` doivent être appelées en POST** (les requêtes GET ne sont plus acceptées), les paramètres pouvant rester dans l'URL. Une requête émise par une autre page Web que celle de MaxPV! est refusée (protection contre le CSRF).
+* Restent en accès libre : le tableau de bord, les graphiques, le journal, le moniteur détaillé et les API de consultation (`/api/status`, `/api/get`, `/api/history`, `/api/events`). La configuration renvoyée par `/api/get?configmaxpv` et `/DLconfig` ne contient pas les mots de passe.
 * Le pilotage par MQTT n'est pas concerné.
 
 Exemple avec curl, pour redémarrer MaxPV! :

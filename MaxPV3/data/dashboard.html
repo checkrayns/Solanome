@@ -67,6 +67,7 @@
       <article class="card span-2 rows-2" aria-labelledby="controls-title">
         <div class="card-head">
           <h2 class="card-title" id="controls-title">Commandes</h2>
+          <span class="pill locked-only">Mode Administrateur requis</span>
         </div>
 
         <div class="control">
@@ -193,10 +194,13 @@
       setTimeout(() => { if (banner.contains(div)) div.remove(); }, 6000);
     }
 
+    // Les commandes sont réservées au mode Administrateur : connexion d'abord si nécessaire
     function runCommand(kind, value, action) {
-      pending[kind] = { value: value, until: Date.now() + 6000 };
-      render();
-      action().catch((e) => { pending[kind] = null; render(); showError(e); });
+      MaxPV.requireAdmin().then(() => {
+        pending[kind] = { value: value, until: Date.now() + 6000 };
+        render();
+        action().catch((e) => { pending[kind] = null; render(); showError(e); });
+      }).catch(() => { /* connexion annulée */ });
     }
 
     $("boost-btn").addEventListener("click", () => {
