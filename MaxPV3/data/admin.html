@@ -6,8 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f3f5f7" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0e1317" media="(prefers-color-scheme: dark)">
-  <title>MaxPV! Administration</title>
-  <link rel="icon" href="favicon.ico">
+  <title>Solanome · Administration</title>
+  <link rel="icon" href="favicon.ico" sizes="64x64">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="favicon.ico">
   <link href="app.css?v=__ASSETS__" rel="stylesheet">
 </head>
 
@@ -18,7 +20,7 @@
     <header class="topbar">
       <div>
         <h1>Administration</h1>
-        <p class="sub">Réseau, MQTT, boost et options de MaxPV!</p>
+        <p class="sub">Réseau, MQTT, boost et options de Solanome</p>
       </div>
     </header>
 
@@ -27,9 +29,9 @@
 
       <section class="card">
         <h2 class="card-title">Réseau</h2>
-        <p class="hint">Adresse IP fixe de MaxPV! sur votre réseau local.</p>
+        <p class="hint">Adresse IP fixe de Solanome sur votre réseau local.</p>
         <div class="form-grid">
-          <label class="field"><span>Adresse IP de MaxPV!</span>
+          <label class="field"><span>Adresse IP de Solanome</span>
             <input type="text" name="ip" required inputmode="decimal" placeholder="192.168.1.250"></label>
           <label class="field"><span>Port HTTP</span>
             <input type="number" name="http_port" disabled>
@@ -160,7 +162,7 @@
 
       <section class="card">
         <h2 class="card-title">Sauvegarde et restauration</h2>
-        <p class="hint">Le fichier exporté contient la configuration de MaxPV! sans les mots de passe (MQTT et interface) : une restauration conserve les mots de passe actuels.</p>
+        <p class="hint">Le fichier exporté contient la configuration de Solanome sans les mots de passe (MQTT et interface) : une restauration conserve les mots de passe actuels.</p>
         <div class="btn-row" style="margin-top: 14px;">
           <button class="btn" type="button" id="export">Exporter la configuration</button>
         </div>
@@ -176,7 +178,7 @@
       <section class="card">
         <h2 class="card-title">Actions avancées</h2>
         <div class="btn-row" style="margin-top: 14px;">
-          <button class="btn" type="button" id="reboot">Redémarrer MaxPV!</button>
+          <button class="btn" type="button" id="reboot">Redémarrer Solanome</button>
           <button class="btn danger" type="button" id="factory">Retour à la configuration d'origine</button>
         </div>
       </section>
@@ -221,7 +223,7 @@
         if (!input.name) return;
         if (input.type === "checkbox") config[input.name] = input.checked ? 1 : 0;
         else if (input.type === "number") config[input.name] = Number(input.value);
-        // Mot de passe laissé vide : clé absente, MaxPV! conserve le mot de passe actuel
+        // Mot de passe laissé vide : clé absente, Solanome conserve le mot de passe actuel
         else if ("secret" in input.dataset) { if (input.value !== "") config[input.name] = input.value; }
         else config[input.name] = input.value.trim();
       });
@@ -239,8 +241,8 @@
         await MaxPV.action("rebootesp");
       });
       setDirty(false);
-      saveMsg.textContent = "Configuration enregistrée, MaxPV! redémarre…";
-      MaxPV.toast("Configuration enregistrée. Si l'adresse IP a changé, rouvrez MaxPV! à sa nouvelle adresse.", "ok");
+      saveMsg.textContent = "Configuration enregistrée, Solanome redémarre…";
+      MaxPV.toast("Configuration enregistrée. Si l'adresse IP a changé, rouvrez Solanome à sa nouvelle adresse.", "ok");
     }
 
     form.addEventListener("input", (e) => {
@@ -257,8 +259,8 @@
         return;
       }
       const question = webPass
-        ? "Enregistrer la configuration et redémarrer MaxPV! ?\n\nLe nouveau mot de passe de l'interface sera demandé à la prochaine action protégée."
-        : "Enregistrer la configuration et redémarrer MaxPV! ?";
+        ? "Enregistrer la configuration et redémarrer Solanome ?\n\nLe nouveau mot de passe de l'interface sera demandé à la prochaine action protégée."
+        : "Enregistrer la configuration et redémarrer Solanome ?";
       if (!confirm(question)) return;
       saveAndReboot(collect(), saveButton).catch(() => {});
     });
@@ -272,27 +274,27 @@
       reader.onload = () => {
         let restored;
         try { restored = JSON.parse(reader.result); }
-        catch (err) { MaxPV.toast("Ce fichier n'est pas une configuration MaxPV! valide", "bad"); return; }
-        if (!("ip" in restored)) { MaxPV.toast("Ce fichier n'est pas une configuration MaxPV! valide", "bad"); return; }
+        catch (err) { MaxPV.toast("Ce fichier n'est pas une configuration Solanome valide", "bad"); return; }
+        if (!("ip" in restored)) { MaxPV.toast("Ce fichier n'est pas une configuration Solanome valide", "bad"); return; }
         fill(restored);
-        if (!confirm("Restaurer cette configuration (adresse IP " + restored.ip + ") et redémarrer MaxPV! ?")) return;
+        if (!confirm("Restaurer cette configuration (adresse IP " + restored.ip + ") et redémarrer Solanome ?")) return;
         saveAndReboot(collect(), e.target).catch(() => {});
       };
       reader.readAsText(restoreFile.files[0]);
     });
 
     document.getElementById("reboot").addEventListener("click", (e) => {
-      if (!confirm("Redémarrer MaxPV! ?")) return;
-      MaxPV.run(e.target, () => MaxPV.action("rebootesp"), "MaxPV! redémarre…").catch(() => {});
+      if (!confirm("Redémarrer Solanome ?")) return;
+      MaxPV.run(e.target, () => MaxPV.action("rebootesp"), "Solanome redémarre…").catch(() => {});
     });
 
     document.getElementById("factory").addEventListener("click", (e) => {
-      if (!confirm("Effacer les configurations Wifi et MaxPV! ?\n\nMaxPV! redémarrera en point d'accès : " +
+      if (!confirm("Effacer les configurations Wifi et Solanome ?\n\nSolanome redémarrera en point d'accès : " +
                    "connectez-vous au réseau Wifi « MaxPV » puis à l'adresse 192.168.4.1.")) return;
       MaxPV.run(e.target, async () => {
         await MaxPV.action("eraseconfigesp");
         await MaxPV.action("rebootesp");
-      }, "Configuration effacée, MaxPV! redémarre en point d'accès").catch(() => {});
+      }, "Configuration effacée, Solanome redémarre en point d'accès").catch(() => {});
     });
 
     document.getElementById("export").addEventListener("click", (e) => {

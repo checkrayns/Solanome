@@ -1,4 +1,4 @@
-/* MaxPV! - Feuille de style commune de l'interface responsive
+/* Solanome - Feuille de style commune de l'interface responsive
    Téléphone : une colonne, navigation en bas d'écran
    Ordinateur (900 px et plus) : menu latéral, cartes en grille */
 
@@ -9,8 +9,14 @@
   --border: #dfe4e9;
   --text: #16202a;
   --muted: #5b6875;
-  --accent: #d97a00;
-  --accent-soft: #fdf0dc;
+  --accent: #c2610f;
+  --accent-soft: #fbeedf;
+  --logo-ray: #3b2412;
+  --logo-top: #f2a93b;
+  --logo-bottom: #3b2412;
+  --logo-wave: #ffffff;
+  --brand-sola: #3b2412;
+  --brand-nome: #c2610f;
   --import: #c2382f;
   --import-soft: #fbe7e5;
   --export: #1c8048;
@@ -34,8 +40,14 @@
     --border: #2a3640;
     --text: #e6ecf1;
     --muted: #97a4af;
-    --accent: #ffad33;
+    --accent: #f2a93b;
     --accent-soft: #3a2a12;
+    --logo-ray: #f2a93b;
+    --logo-top: #f2a93b;
+    --logo-bottom: #c2610f;
+    --logo-wave: #ffffff;
+    --brand-sola: #ffffff;
+    --brand-nome: #f2a93b;
     --import: #ff7b70;
     --import-soft: #3a1d1b;
     --export: #4fcb86;
@@ -192,15 +204,7 @@ h1, h2, h3 { margin: 0; font-weight: 650; }
     border-right: 1px solid var(--border);
   }
 
-  .nav-side .brand {
-    padding: 4px 12px 20px;
-    color: var(--text);
-    font-size: 1.3rem;
-    font-weight: 700;
-    text-decoration: none;
-  }
-
-  .nav-side .brand span { color: var(--accent); }
+  .nav-side .brand { padding: 2px 8px 18px; font-size: 1.45rem; }
 
   .nav-side a.item {
     display: flex;
@@ -731,3 +735,36 @@ dialog.login h2 { font-size: 1.2rem; }
 dialog.login .hint { margin: 0; color: var(--muted); font-size: 0.92rem; }
 
 .login-error { min-height: 1.2em; margin: 0; color: var(--import); font-weight: 600; }
+
+/* ---------- Logo Solanome ---------- */
+
+.brand, .brand-mobile {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  text-decoration: none;
+}
+
+.logo-mark { width: 1.5em; height: 1.5em; flex: none; }
+
+.logo-rays { stroke: var(--logo-ray); }
+.logo-top { fill: var(--logo-top); }
+.logo-bottom { fill: var(--logo-bottom); }
+.logo-wave { stroke: var(--logo-wave); }
+
+.wordmark {
+  font-family: "Lexend", "Sora", "Nunito", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.wordmark .sola { color: var(--brand-sola); }
+.wordmark .nome { color: var(--brand-nome); }
+
+/* Sur téléphone : logo compact au-dessus du titre de la page */
+.brand-mobile { margin-bottom: 10px; font-size: 1.15rem; }
+
+@media (min-width: 900px) {
+  .brand-mobile { display: none; }
+}

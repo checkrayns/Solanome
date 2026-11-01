@@ -1,4 +1,4 @@
-// MaxPV! - Script commun de l'interface responsive
+// Solanome - Script commun de l'interface responsive
 // - menu unique pour toutes les pages (latéral sur ordinateur, en bas d'écran sur téléphone)
 // - lecture de l'état par /api/status toutes les 2 secondes, suspendue quand l'onglet est masqué
 // - commandes boost, SSR et relais
@@ -51,10 +51,28 @@ const MaxPV = (() => {
     return (page === "" || page === "main.html") ? "dashboard.html" : page;
   }
 
+  // ---------- Logo Solanome ----------
+
+  // Soleil coupé par une vague : moitié haute orange, moitié basse brune (couleurs selon le thème, cf. app.css)
+  let logoCount = 0;
+  function logoMark() {
+    const clip = "logo-clip-" + (++logoCount);   // identifiant propre à chaque logo de la page
+    return '<svg class="logo-mark" viewBox="0 0 64 64" aria-hidden="true">' +
+      '<defs><clipPath id="' + clip + '"><circle cx="32" cy="38" r="18"/></clipPath></defs>' +
+      '<path class="logo-rays" fill="none" stroke-width="4.5" stroke-linecap="round" ' +
+      'd="M32 16V10M43 18.9L46 13.7M21 18.9L18 13.7M51 27L56.2 24M13 27L7.8 24"/>' +
+      '<circle class="logo-top" cx="32" cy="38" r="18"/>' +
+      '<path class="logo-bottom" clip-path="url(#' + clip + ')" d="M12 39Q22 33 32 39T52 39V58H12Z"/>' +
+      '<path class="logo-wave" clip-path="url(#' + clip + ')" fill="none" stroke-width="2.6" stroke-linecap="round" d="M12 39Q22 33 32 39T52 39"/>' +
+      "</svg>";
+  }
+
+  const logo = () => logoMark() + '<span class="wordmark"><span class="sola">sola</span><span class="nome">nome</span></span>';
+
   function renderNav() {
     const page = currentPage();
     const current = (item) => item.href === page ? ' aria-current="page"' : "";
-    let side = '<a class="brand" href="dashboard.html">Max<span>PV!</span></a>';
+    let side = '<a class="brand" href="dashboard.html" aria-label="Solanome, accueil">' + logo() + "</a>";
     let bottom = "";
     let sheet = "";
 
@@ -75,6 +93,17 @@ const MaxPV = (() => {
       '<nav class="nav-bottom" aria-label="Menu principal">' + bottom + "</nav>" +
       '<div class="nav-sheet" id="nav-sheet"><ul><li>' + adminButton + "</li>" + sheet + "</ul></div>";
     document.body.prepend(nav);
+
+    // Sur téléphone, le menu latéral est masqué : le logo est placé au-dessus du titre de la page
+    const topbar = document.querySelector(".topbar");
+    if (topbar) {
+      const brand = document.createElement("a");
+      brand.className = "brand-mobile";
+      brand.href = "dashboard.html";
+      brand.setAttribute("aria-label", "Solanome, accueil");
+      brand.innerHTML = logo();
+      topbar.before(brand);
+    }
 
     nav.querySelectorAll(".admin-toggle").forEach((button) => {
       button.addEventListener("click", () => {
@@ -106,8 +135,8 @@ const MaxPV = (() => {
 
   // ---------- Mode Administrateur ----------
   //
-  // Les pages et requêtes qui modifient MaxPV! sont réservées au mode Administrateur.
-  // MaxPV! vérifie chaque requête protégée par authentification HTTP Digest. Pour l'interface,
+  // Les pages et requêtes qui modifient Solanome sont réservées au mode Administrateur.
+  // Solanome vérifie chaque requête protégée par authentification HTTP Digest. Pour l'interface,
   // le défi est transmis dans l'en-tête X-MaxPV-Auth (et non WWW-Authenticate, qui déclencherait
   // la fenêtre de connexion du navigateur) et la réponse est calculée ici.
   // Le mot de passe n'est jamais conservé : seule l'empreinte HA1 = MD5(identifiant:MaxPV:mot de passe)
@@ -164,7 +193,7 @@ const MaxPV = (() => {
            '", opaque="' + challenge.opaque + '"';
   }
 
-  // Requête authentifiée. Sur un refus, MaxPV! renvoie un nouveau défi dans X-MaxPV-Auth et la requête
+  // Requête authentifiée. Sur un refus, Solanome renvoie un nouveau défi dans X-MaxPV-Auth et la requête
   // est rejouée avec ce défi :
   // - premier refus : pas encore de défi, ou nonce expiré (5 minutes) ;
   // - refus suivant avec stale=true : seul le nonce était refusé (requêtes simultanées arrivées dans le désordre),
@@ -196,7 +225,7 @@ const MaxPV = (() => {
     challenge = null;
     const response = await authFetch("api/auth");
     if (response.status === 401) { logout(); throw new Error("mode Administrateur expiré"); }
-    if (!challenge) throw new Error("MaxPV! n'a pas fourni de défi d'authentification");
+    if (!challenge) throw new Error("Solanome n'a pas fourni de défi d'authentification");
     return authorization(method, url);
   }
 
@@ -224,7 +253,7 @@ const MaxPV = (() => {
       dialog.innerHTML =
         '<form method="dialog">' +
         '<h2>Mode Administrateur</h2>' +
-        '<p class="hint">Identifiant et mot de passe de MaxPV! pour modifier les réglages et piloter le routeur.</p>' +
+        '<p class="hint">Identifiant et mot de passe de Solanome pour modifier les réglages et piloter le routeur.</p>' +
         '<label class="field"><span>Identifiant</span><input type="text" name="user" autocomplete="username" required></label>' +
         '<label class="field"><span>Mot de passe</span><input type="password" name="password" autocomplete="current-password" required></label>' +
         '<p class="login-error" role="alert"></p>' +
@@ -260,7 +289,7 @@ const MaxPV = (() => {
           error.textContent = "Identifiant ou mot de passe incorrect";
           form.elements.password.select();
         }
-        catch (err) { error.textContent = "MaxPV! ne répond pas"; }
+        catch (err) { error.textContent = "Solanome ne répond pas"; }
         finally { submit.disabled = false; }
       });
       dialog.showModal();
@@ -288,7 +317,7 @@ const MaxPV = (() => {
       card.className = "card locked-card";
       card.innerHTML = icon("lock", "locked-icon") +
         "<h2>Mode Administrateur requis</h2>" +
-        '<p class="hint">Cette page permet de modifier MaxPV!. Déverrouillez le mode Administrateur pour y accéder.</p>' +
+        '<p class="hint">Cette page permet de modifier Solanome. Déverrouillez le mode Administrateur pour y accéder.</p>' +
         '<button class="btn primary" type="button">Déverrouiller</button>';
       main.appendChild(card);
       card.querySelector("button").addEventListener("click", () => {
@@ -413,7 +442,7 @@ const MaxPV = (() => {
   const setParam = (name, value) =>
     post("api/set?param=" + (PARAMS.indexOf(name) + 1) + "&value=" + encodeURIComponent(String(value).trim()));
 
-  // Configuration de MaxPV! (config.json), valeurs 0/1 pour les interrupteurs.
+  // Configuration de Solanome (config.json), valeurs 0/1 pour les interrupteurs.
   // La lecture ne contient pas les mots de passe ; une clé absente à l'envoi conserve la valeur actuelle
   const getConfig = () => getJSON("api/get?configmaxpv");
   const setConfig = (config) => post("api/set", new URLSearchParams({ configmaxpv: "", value: JSON.stringify(config) }));
@@ -560,7 +589,7 @@ const MaxPV = (() => {
       state.events.unshift({ id: id, time: Math.floor(Date.now() / 1000), uptime: 0, type: type, detail: detail, value: 0, msg: msg });
     }
 
-    addEvent("boot", "power_on", "Démarrage de MaxPV! : mise sous tension");
+    addEvent("boot", "power_on", "Démarrage de Solanome : mise sous tension");
     addEvent("mqtt_ok", "", "Connexion MQTT établie");
     addEvent("ssr_mode", "web", "Mode SSR : AUTO (web / API)");
 

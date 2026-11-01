@@ -1,4 +1,4 @@
-// MaxPV! - Graphiques SVG légers pour séries temporelles (courbes, aires, barres)
+// Solanome - Graphiques SVG légers pour séries temporelles (courbes, aires, barres)
 // S'adaptent à la largeur de leur conteneur et affichent les valeurs au survol
 // ou en faisant glisser le doigt sur le graphique.
 

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Icône Solanome : soleil sur fond brun -->
+  <defs><clipPath id="sun"><circle cx="32" cy="38" r="18"/></clipPath></defs>
+  <rect width="64" height="64" rx="15" fill="#3b2412"/>
+  <g transform="translate(32 33) scale(0.82) translate(-32 -33)">
+    <path fill="none" stroke="#f2a93b" stroke-width="4.5" stroke-linecap="round" d="M32 16V10M43 18.9L46 13.7M21 18.9L18 13.7M51 27L56.2 24M13 27L7.8 24"/>
+    <circle cx="32" cy="38" r="18" fill="#f2a93b"/>
+    <path clip-path="url(#sun)" fill="#c2610f" d="M12 39Q22 33 32 39T52 39V58H12Z"/>
+    <path clip-path="url(#sun)" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" d="M12 39Q22 33 32 39T52 39"/>
+  </g>
+</svg>

@@ -6,8 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f3f5f7" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0e1317" media="(prefers-color-scheme: dark)">
-  <title>MaxPV! Moniteur détaillé</title>
-  <link rel="icon" href="favicon.ico">
+  <title>Solanome · Moniteur détaillé</title>
+  <link rel="icon" href="favicon.ico" sizes="64x64">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="favicon.ico">
   <link href="app.css?v=__ASSETS__" rel="stylesheet">
 </head>
 
@@ -85,7 +87,7 @@
       </article>
 
       <article class="card">
-        <h2 class="card-title">MaxPV!</h2>
+        <h2 class="card-title">Solanome</h2>
         <ul class="list">
           <li><span class="label">En marche depuis</span><span class="value" id="uptime">—</span></li>
           <li><span class="label">Signal Wifi</span><span class="value" id="rssi">—</span></li>
@@ -153,7 +155,7 @@
       set("uptime", fmt.duration(s.uptime));
       set("rssi", s.rssi + " dBm");
       set("mqtt", { off: "inactif", connected: "connecté", disconnected: "déconnecté" }[s.mqtt] || s.mqtt);
-      set("versions", "MaxPV! " + s.version.maxpv + " · site " + s.version.web + " · EcoPV " + (s.version.ecopv || "—"));
+      set("versions", "Solanome " + s.version.maxpv + " · site " + s.version.web + " · EcoPV " + (s.version.ecopv || "—"));
     });
 
   </script>

@@ -1457,7 +1457,7 @@ String eventMessage(const eventRecord& e)
   msg.reserve(96);
   switch (e.type) {
     case EVT_BOOT:
-      msg = F("Démarrage de MaxPV! : ");
+      msg = F("Démarrage de Solanome : ");
       msg += bootCauseText(e.detail);
       if ( e.detail == REASON_EXCEPTION_RST ) {
         msg += F(" (exception ");
@@ -1529,7 +1529,7 @@ String eventMessage(const eventRecord& e)
       }
       break;
     case EVT_REBOOT:
-      msg = F("Redémarrage de MaxPV! : ");
+      msg = F("Redémarrage de Solanome : ");
       msg += bootCauseText(e.detail);
       break;
     case EVT_CONFIG:
