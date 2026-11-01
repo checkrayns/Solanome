@@ -59,7 +59,6 @@
 #include <Updater.h>
 #include <MD5Builder.h>
 #include <WebAuthentication.h>
-#include "request_private.h"
 #include <Ticker.h>
 #include <TickerScheduler.h>
 #include <ArduinoJson.h>
@@ -2708,7 +2707,7 @@ bool digestUriMatches (AsyncWebServerRequest * request, const String& uri)
     if ( ( equal < 0 ) || ( equal > end ) ) equal = end;
     String name = request->urlDecode ( query.substring ( start, equal ) );
     String value = ( equal + 1 < end ) ? request->urlDecode ( query.substring ( equal + 1, end ) ) : String();
-    AsyncWebParameter* param = request->getParam ( name, false, false );
+    const AsyncWebParameter* param = request->getParam ( name, false, false );
     if ( ( param == nullptr ) || !param->value().equals ( value ) ) return false;
     signedParams++;
     start = end + 1;
@@ -2716,7 +2715,7 @@ bool digestUriMatches (AsyncWebServerRequest * request, const String& uri)
 
   size_t urlParams = 0;
   for (size_t i = 0; i < request->params(); i++) {
-    AsyncWebParameter* param = request->getParam ( i );
+    const AsyncWebParameter* param = request->getParam ( i );
     if ( !param->isPost() && !param->isFile() ) urlParams++;
   }
   return signedParams == urlParams;
@@ -2728,9 +2727,10 @@ bool digestUriMatches (AsyncWebServerRequest * request, const String& uri)
 bool isWebAuthenticated (AsyncWebServerRequest * request)
 {
   digestStale = false;
-  if ( !requestIsDigest ( request ) ) return false;
+  if ( request->authType() != AsyncAuthType::AUTH_DIGEST ) return false;
 
-  const String& header = requestAuthorization ( request );
+  // Contenu de l'en-tête Authorization, sans le préfixe "Digest "
+  const String& header = request->authChallenge();
   String nonce = digestField ( header, "nonce" );
   String uri   = digestField ( header, "uri" );
   uint32_t nc  = strtoul ( digestField ( header, "nc" ).c_str(), nullptr, 16 );
@@ -2826,7 +2826,7 @@ void sendWebFile (AsyncWebServerRequest * request, const webFile* file)
     request->send ( 404, "text/plain", F("Not found") );
     return;
   }
-  AsyncWebServerResponse *response = request->beginResponse_P ( 200, file->mime, file->data, file->len );
+  AsyncWebServerResponse *response = request->beginResponse ( 200, file->mime, file->data, file->len );
   response->addHeader ( F("Content-Encoding"), F("gzip") );
   // Fichier appelé avec l'empreinte de son contenu (app.css?v=...) : une nouvelle version porte une autre empreinte
   if ( request->hasParam ( F("v") ) ) response->addHeader ( F("Cache-Control"), F("max-age=31536000, immutable") );
