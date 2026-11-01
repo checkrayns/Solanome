@@ -172,7 +172,9 @@ const MaxPV = (() => {
       const headers = new Headers(options.headers || {});
       headers.set("X-MaxPV", "1");
       if (challenge && session) headers.set("Authorization", authorization(options.method, url));
-      const response = await fetch(url, Object.assign({}, options, { headers: headers, cache: "no-store" }));
+      // credentials "omit" : le navigateur n'ajoute pas d'identifiants Digest qu'il aurait mémorisés
+      // (fenêtre de connexion d'une ancienne version) ; seuls ceux du mode Administrateur sont envoyés
+      const response = await fetch(url, Object.assign({}, options, { headers: headers, cache: "no-store", credentials: "omit" }));
       const offer = response.status === 401 ? response.headers.get("X-MaxPV-Auth") : null;
       if (!offer || attempt === 1) return response;
       challenge = {};
@@ -187,6 +189,7 @@ const MaxPV = (() => {
     if (!challenge) {
       const response = await authFetch("api/auth");
       if (response.status === 401) { logout(); throw new Error("mode Administrateur expiré"); }
+      if (!challenge) throw new Error("MaxPV! n'a pas fourni de défi d'authentification");
     }
     return authorization(method, url);
   }
