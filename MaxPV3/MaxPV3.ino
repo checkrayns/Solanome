@@ -675,6 +675,37 @@ AsyncWiFiManager  wifiManager(&webServer, &dnsServer);
   clearSerialInputCache();
 }
 
+#if defined (SOLANOME_CRASH_TEST)
+// ***********************************************************************************
+// Test des plantages, compilé uniquement avec SOLANOME_CRASH_TEST (env d1_mini_crashtest)
+// La requête /api/action?crashtest=wdt|exception positionne crashTestRequest ;
+// le plantage est exécuté par loop() pour reproduire un vrai blocage de la boucle.
+// Fonctions noinline : epc1 pointe dans la fonction elle-même, retrouvée par addr2line
+// ***********************************************************************************
+
+#define CRASH_TEST_NONE       0
+#define CRASH_TEST_WDT        1
+#define CRASH_TEST_EXCEPTION  2
+#define CRASH_TEST_DELAY      1000    // ms laissées à la réponse HTTP avant le plantage
+
+byte crashTestRequest = CRASH_TEST_NONE;
+unsigned long crashTestTime = 0;
+
+// Boucle infinie sans yield() : le watchdog logiciel redémarre l'ESP (REASON_SOFT_WDT_RST)
+void __attribute__((noinline)) crashTestWdt(void)
+{
+  volatile uint32_t counter = 0;
+  while ( true ) counter++;
+}
+
+// Ecriture via un pointeur nul : exception StoreProhibited (REASON_EXCEPTION_RST, exccause 29)
+void __attribute__((noinline)) crashTestException(void)
+{
+  volatile uint32_t* nullPointer = nullptr;
+  *nullPointer = 0xDEAD;
+}
+#endif
+
 // ***********************************************************************************
 // ***************************            LOOP ()          ***************************
 // ***********************   BOUCLE INIFINE DE FONCTIONNEMENT   **********************
@@ -722,6 +753,14 @@ void loop()
     rebootESP();
     shouldReboot = false;
   }
+
+#if defined (SOLANOME_CRASH_TEST)
+  // Plantage demandé par /api/action?crashtest, exécuté dans la boucle principale
+  if ( ( crashTestRequest != CRASH_TEST_NONE ) && ( ( millis() - crashTestTime ) >= CRASH_TEST_DELAY ) ) {
+    if ( crashTestRequest == CRASH_TEST_WDT ) crashTestWdt();
+    else crashTestException();
+  }
+#endif
 
   yield();
   
@@ -3316,6 +3355,18 @@ void setWebHandlers (void) {
     }
     else if ( request->hasArg ( F("booston") ) )  boostON ( EVT_SRC_WEB );
     else if ( request->hasArg ( F("boostoff") ) ) boostOFF ( EVT_SRC_WEB );
+#if defined (SOLANOME_CRASH_TEST)
+    // Test des plantages : le handler positionne seulement le drapeau, loop() exécute le plantage
+    else if ( request->hasArg ( F("crashtest") ) ) {
+      if ( request->arg ( F("crashtest") ) == F("wdt") )            crashTestRequest = CRASH_TEST_WDT;
+      else if ( request->arg ( F("crashtest") ) == F("exception") ) crashTestRequest = CRASH_TEST_EXCEPTION;
+      else response = F("Unknown request");
+      if ( crashTestRequest != CRASH_TEST_NONE ) {
+        crashTestTime = millis();
+        logMqtt ( F("[ESP]"), F("Test de plantage demandé") );
+      }
+    }
+#endif
     else response = F("Unknown request");
     request->send ( 200, "text/plain", response );
   });

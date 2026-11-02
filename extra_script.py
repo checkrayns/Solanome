@@ -40,9 +40,15 @@ for line in Lines:
 if version == "":
     raise Exception(f"No version found in {SOURCECODE}")
 
+# Environnement de publication : seul d1_mini produit les binaires publiés.
+# Les variantes (d1_mini_crashtest...) portent leur nom dans celui du firmware
+RELEASE_ENV = "d1_mini"
+pioenv = env.subst("$PIOENV")
+variant = "" if pioenv == RELEASE_ENV else "_" + pioenv.replace(RELEASE_ENV + "_", "")
+
 # Rename binary according to environnement/board
-env.Replace(ESP8266_FS_IMAGE_NAME=f"Solanome{version}_filesystem")
-env.Replace(PROGNAME=f"Solanome{version}_firmware")
+env.Replace(ESP8266_FS_IMAGE_NAME=f"Solanome{version}{variant}_filesystem")
+env.Replace(PROGNAME=f"Solanome{version}{variant}_firmware")
 
 
 # Après chaque compilation du firmware, le fichier .elf (programme avec ses symboles) est copié
@@ -58,7 +64,9 @@ def copy_elf(source, target, env):
         shutil.copyfile(elf, destination)
         print(f"{BINARIES_DIR}/Solanome{version}_firmware.elf copié")
 
-env.AddPostAction("$BUILD_DIR/${PROGNAME}.bin", copy_elf)
+# Uniquement pour le firmware publié : une variante ne doit pas remplacer l'ELF de la version
+if variant == "":
+    env.AddPostAction("$BUILD_DIR/${PROGNAME}.bin", copy_elf)
 
 
 # Génération de web_files.h : les fichiers du site Web sont intégrés au firmware,
