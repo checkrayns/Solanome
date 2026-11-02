@@ -2,6 +2,7 @@ import os
 import re
 import gzip
 import hashlib
+import shutil
 Import("env")
 
 SOURCECODE = "./MaxPV3/maxpv_defines.h"
@@ -42,6 +43,22 @@ if version == "":
 # Rename binary according to environnement/board
 env.Replace(ESP8266_FS_IMAGE_NAME=f"Solanome{version}_filesystem")
 env.Replace(PROGNAME=f"Solanome{version}_firmware")
+
+
+# Après chaque compilation du firmware, le fichier .elf (programme avec ses symboles) est copié
+# dans le répertoire des binaires : il permet de retrouver avec addr2line la fonction en cause
+# dans un plantage, à partir des adresses publiées sur maxpv/SYS/lastCrash (README, Analyser un plantage)
+BINARIES_DIR = "Binaires Solanome"
+
+def copy_elf(source, target, env):
+    elf = env.subst("$BUILD_DIR/${PROGNAME}.elf")
+    binaries = os.path.join(env.subst("$PROJECT_DIR"), BINARIES_DIR)
+    if os.path.isfile(elf) and os.path.isdir(binaries):
+        destination = os.path.join(binaries, f"Solanome{version}_firmware.elf")
+        shutil.copyfile(elf, destination)
+        print(f"{BINARIES_DIR}/Solanome{version}_firmware.elf copié")
+
+env.AddPostAction("$BUILD_DIR/${PROGNAME}.bin", copy_elf)
 
 
 # Génération de web_files.h : les fichiers du site Web sont intégrés au firmware,

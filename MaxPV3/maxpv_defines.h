@@ -24,8 +24,8 @@
 // ***********************************************************************************
 
 // Version MaxPV!
-#define MAXPV_VERSION      "4.0"
-#define MAXPV_VERSION_FULL "Solanome 4.0"
+#define MAXPV_VERSION      "4.1"
+#define MAXPV_VERSION_FULL "Solanome 4.1"
 
 // SSID pour le Config Portal
 #define SSID_CP            "Solanome"
@@ -228,4 +228,5 @@
 #define MQTT_SYS_MAX_FREE       "maxpv/SYS/maxFreeBlockSize"
 #define MQTT_SYS_CPU_FREQ       "maxpv/SYS/cpuFrequency"
 #define MQTT_SYS_RESET_REASON   "maxpv/SYS/lastResetReason"
+#define MQTT_SYS_LAST_CRASH     "maxpv/SYS/lastCrash"         // retenu, mis à jour uniquement après un plantage
 #define MQTT_LOGGER             "maxpv/SYS/logger"

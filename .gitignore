@@ -41,3 +41,5 @@
 !.vscode/tasks.json
 !.vscode/extensions.json
 !.vscode/*.code-snippets
+# Fichiers .elf des binaires (2 Mo par version) : conservés en local, joints aux releases GitHub
+Binaires Solanome/*.elf

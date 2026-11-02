@@ -292,6 +292,11 @@ uint32_t eventCounter = 0;      // id du dernier événement enregistré
                                 // l'événement d'id n est rangé à la position (n - 1) % EVENT_LOG_SIZE
 uint32_t eventPublishedId = 0;  // id du dernier événement publié en MQTT
 
+// Diagnostic d'un plantage (watchdog ou exception) au démarrage
+bool bootCrash = false;         // le démarrage fait suite à un plantage
+uint32_t bootEpc1 = 0;          // adresse epc1 du plantage, ajoutée à l'événement de démarrage
+String crashJson;               // JSON à publier sur MQTT_SYS_LAST_CRASH, vidé une fois publié
+
 // Suivi des connexions Wifi et MQTT pour ne journaliser que les changements d'état
 WiFiEventHandler wifiDisconnectHandler;
 WiFiEventHandler wifiGotIPHandler;
@@ -1100,6 +1105,9 @@ void espTransmitInfos (void)
     yield();
     mqttClient.publish(MQTT_SYS_RESET_REASON, 0, true, ESP.getResetReason().c_str());
     yield();
+    // Dernier plantage : publié une seule fois, retenu par le broker jusqu'au plantage suivant
+    if ( ( crashJson.length() > 0 ) && mqttClient.publish(MQTT_SYS_LAST_CRASH, 0, true, crashJson.c_str()) ) crashJson = String();
+    yield();
   }
 }
 
@@ -1218,7 +1226,32 @@ void logBootEvent(void)
     rtcData[0] = 0;
     ESP.rtcUserMemoryWrite(RTC_REBOOT_OFFSET, rtcData, sizeof(rtcData));
   }
+
+  // Plantage (watchdog ou exception) : adresses du processeur au moment de la réinitialisation.
+  // Avec le fichier .elf de la version, addr2line retrouve la fonction en cause (README, Analyser un plantage).
+  // Publié sur MQTT_SYS_LAST_CRASH par espTransmitInfos() ; rien n'est publié après un redémarrage normal
+  if ( ( cause == REASON_SOFT_WDT_RST ) || ( cause == REASON_WDT_RST ) || ( cause == REASON_EXCEPTION_RST ) ) {
+    char json[240];
+    bootCrash = true;
+    bootEpc1 = resetInfo->epc1;
+    snprintf_P ( json, sizeof(json),
+                 PSTR("{\"reason\":\"%s\",\"exccause\":%lu,\"epc1\":\"0x%08lx\",\"epc2\":\"0x%08lx\",\"epc3\":\"0x%08lx\","
+                      "\"excvaddr\":\"0x%08lx\",\"depc\":\"0x%08lx\",\"version\":\"" MAXPV_VERSION "\"}"),
+                 String ( bootCauseKey ( cause ) ).c_str(), (unsigned long) resetInfo->exccause,
+                 (unsigned long) resetInfo->epc1, (unsigned long) resetInfo->epc2, (unsigned long) resetInfo->epc3,
+                 (unsigned long) resetInfo->excvaddr, (unsigned long) resetInfo->depc );
+    crashJson = json;
+  }
   logEvent ( EVT_BOOT, cause, value );
+}
+
+
+// Adresse epc1 du dernier plantage, en hexadécimal
+String bootEpc1Hex (void)
+{
+  char hex[11];
+  snprintf_P ( hex, sizeof(hex), PSTR("0x%08lx"), (unsigned long) bootEpc1 );
+  return String ( hex );
 }
 
 ///////////////////////////////////////////////////////////////////
@@ -1464,6 +1497,10 @@ String eventMessage(const eventRecord& e)
         msg += e.value;
         msg += F(")");
       }
+      if ( bootCrash ) {
+        msg += F(", epc1 ");
+        msg += bootEpc1Hex();
+      }
       break;
     case EVT_BOOST_ON:
       msg = F("Boost démarré (");
@@ -1586,6 +1623,12 @@ String eventToJson(const eventRecord& e)
   }
   json += F("\",\"value\":");
   json += e.value;
+  // Démarrage après un plantage : adresse epc1 pour addr2line (un seul événement de démarrage par session)
+  if ( ( e.type == EVT_BOOT ) && bootCrash ) {
+    json += F(",\"epc1\":\"");
+    json += bootEpc1Hex();
+    json += '"';
+  }
   json += F(",\"msg\":\"");
   json += eventMessage(e);
   json += F("\"}");

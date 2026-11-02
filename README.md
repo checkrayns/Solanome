@@ -186,6 +186,19 @@ Un broker MQTT est configurable dans l'administration du système. L'authentific
 Solanome tient un journal des derniers événements de fonctionnement : démarrages et arrêts du boost (avec leur origine : web / API, MQTT ou programmation horaire, et la raison de l'arrêt : arrêt manuel, durée écoulée, température ECS atteinte, changement de mode SSR), boosts refusés car la température ECS est déjà atteinte, changements de mode du SSR, démarrages de Solanome avec leur cause (mise sous tension, watchdog, exception, redémarrage demandé...), pertes et reprises des connexions Wifi et MQTT.
 Le journal est conservé en mémoire dans un tampon circulaire (64 derniers événements) et repart à zéro à chaque redémarrage. Il est consultable dans la page *Journal* de l'interface Web et en JSON à l'adresse `http://solanome.local/api/events` (du plus récent au plus ancien). Chaque événement est aussi publié en JSON sur le canal MQTT 'maxpv/event' ; les événements survenus pendant une coupure Wifi ou MQTT sont publiés à la reconnexion. Un capteur *Dernier événement* est déclaré dans l'autodiscovery Home Assistant.
 
+## Analyser un plantage
+Après un redémarrage dû à un plantage (watchdog logiciel ou matériel, exception), Solanome publie au démarrage, une fois MQTT connecté, les adresses du processeur au moment du plantage sur le canal MQTT retenu `maxpv/SYS/lastCrash` :
+```
+{"reason":"soft_watchdog","exccause":0,"epc1":"0x40212345","epc2":"0x00000000","epc3":"0x00000000","excvaddr":"0x00000000","depc":"0x00000000","version":"4.1"}
+```
+Ce message n'est remplacé qu'au plantage suivant : un redémarrage normal (mise à jour, redémarrage demandé, mise sous tension) le laisse consultable. L'adresse `epc1` figure aussi dans l'événement de démarrage du journal (page *Journal*, `/api/events` et `maxpv/event`).
+
+Pour retrouver la fonction en cause, utilisez le fichier *.elf* de la version indiquée (`version`), copié dans le répertoire **"Binaires Solanome"** à chaque compilation avec PlatformIO. Ce fichier n'est pas versionné dans le dépôt (2 Mo par version) : il reste en local, et celui du binaire de chaque release est joint à la release GitHub.
+```
+~/.platformio/packages/toolchain-xtensa/bin/xtensa-lx106-elf-addr2line -pfiaC -e "Binaires Solanome/Solanome<version>_firmware.elf" <epc1>
+```
+Par exemple, pour la version 4.1 : `... -e "Binaires Solanome/Solanome4.1_firmware.elf" 0x40212345`. Le résultat donne le nom de la fonction ; le firmware étant compilé sans informations de débogage, le fichier et la ligne s'affichent `??:?`. Le fichier *.elf* doit être exactement celui de la version installée.
+
 ## Relais distant en mode miroir
 Vous pouvez configurer un relais distant accessible sur votre réseau local via une requête HTTP GET. La configuration s'effectue dans l'onglet administration (adresse IP, port, chemins pour mettre le relais à ON et à OFF). Lorsqu'il est activé, l'état du relais physique de Solanome (relais secondaire de délestage situé sur le PCB) est recopié sur le relais distant. C'est un fonctionnement en miroir qui vous permet de bénéficier de la fonctionnalité "relais secondaire" à distance sans avoir à tirer de cable. Cela peut servir par exemple pour piloter une pompe de piscine dont l'alimentation est éloignée de Solanome. Note 1 : Solanome ne gère pas le retour d'état du relais distant, seules des commandes HTTP de pilotage sont émises. Note 2 : Veillez à ce que l'appel HTTP au relais distant ne génère pas en retour une réponse trop longue. Si la réponse contient quelques dizaines de caractères, ce qui est généralement le cas pour une API distante, il n'y a aucun souci. Si la réponse est une page WEB lourde de plusieurs kilo-octets, cela peut provoquer un dysfonctionnement du Wemos et son redémarrage. Note 3 : depuis la version 3.53, l'état du relais distant est mis à jour toutes les 20 secondes. Il peut donc s'écouler jusqu'à 20 secondes pour que l'état du relais physique soit recopié sur le relais distant.
 
@@ -203,6 +216,10 @@ Les pins d'entrée-sortie de l'Arduino Nano sont configurables dans le code EcoP
 La pin D9 est utilisé pour la sonde de température 1-Wire depuis la version 3.60.
 
 # Versions
+### **V 4.1** - 02/11/2026
+* Diagnostic des plantages : après un watchdog ou une exception, les adresses du processeur (epc1, epc2, epc3, excvaddr, depc) sont publiées sur le canal MQTT retenu `maxpv/SYS/lastCrash`, et `epc1` est ajouté à l'événement de démarrage du journal.
+* Le fichier *.elf* de chaque version est copié en local dans *Binaires Solanome* et joint aux releases GitHub, pour décoder les adresses avec addr2line (voir *Analyser un plantage*).
+* Versions : Solanome 4.1, site Web 4.1, EcoPV 3.60.
 ### **V 4.0** - 01/11/2026
 * MaxPV! devient **Solanome** : nouveau nom et nouveau logo dans l'interface, icône d'application, couleurs de l'interface alignées sur la marque.
 * Nouvelle adresse locale **http://solanome.local**, réseau Wifi du point d'accès **Solanome**, appareil **Solanome** dans Home Assistant (entités et historique conservés), domaine d'authentification *Solanome*.
